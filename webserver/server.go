@@ -26,6 +26,6 @@ func (s *Server) Run() {
 	fs := http.FileServer(http.Dir(s.Directory))
 	http.Handle("/", fs)
 
-	log.Infof("Starting static webserver with directory %s", s.Directory)
+	log.Infof("Starting static webserver with directory %s on interface %s", s.Directory, s.Interface)
 	log.Fatal(http.ListenAndServe(s.Interface, nil))
 }
