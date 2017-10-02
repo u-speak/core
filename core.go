@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/u-speak/core/api"
 	"github.com/u-speak/core/config"
 	"github.com/u-speak/core/webserver"
 )
@@ -18,4 +19,8 @@ func RunNode() {
 	for {
 		//TODO: Implement this
 	}
+}
+
+func RunAPI() {
+	api.New(Config).Run()
 }
