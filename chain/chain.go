@@ -15,8 +15,12 @@ type Chain struct {
 }
 
 // New initializes a new Chain
-func New(validate ValidationFunc) *Chain {
-	return &Chain{blocks: &MemoryStore{}, validate: validate}
+func New(b BlockStore, validate ValidationFunc) *Chain {
+	g := genesisBlock()
+	b.Add(g)
+	c := &Chain{blocks: b, validate: validate}
+	c.lastHash = g.Hash()
+	return c
 }
 
 // AddData adds a new block to the chain

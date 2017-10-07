@@ -7,7 +7,7 @@ import (
 	"github.com/kpashka/echo-logrusmiddleware"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/config"
 	"github.com/u-speak/core/node"
 )
@@ -26,11 +26,12 @@ func New(c config.Configuration) *API {
 func (a *API) Run() {
 	e := echo.New()
 	e.HideBanner = true
-	e.Logger = logrusmiddleware.Logger{logrus.StandardLogger()}
+	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 
 	apiV1 := e.Group("/api/v1", middleware.CORS())
 	apiV1.GET("/status", a.getStatus)
 
+	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	e.Logger.Error(e.Start(a.ListenInterface))
 }
 

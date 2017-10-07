@@ -10,7 +10,7 @@ type Configuration struct {
 		Static struct {
 			Port      int    `default:"4000"`
 			Interface string `default:"127.0.0.1"`
-			Directory string `default:"static"`
+			Directory string `default:"portal/dist"`
 		}
 		API struct {
 			Port      int    `default:"3000"`
