@@ -75,7 +75,7 @@ func TestLinking(t *testing.T) {
 		ob := b
 		b = c.Get(b.PrevHash)
 		if b == nil {
-			t.Errorf("Broken Linkage! %s has no predecessor", ob)
+			t.Errorf("Broken Linkage! %x has no predecessor", ob.Hash())
 		}
 	}
 	if b.Content != "GENESIS" {

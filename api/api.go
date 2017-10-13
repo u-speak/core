@@ -15,6 +15,7 @@ import (
 	"github.com/u-speak/core/node"
 )
 
+// API is used as a container, allowing the REST API to access the node
 type API struct {
 	ListenInterface string
 	node            *node.Node
@@ -38,6 +39,7 @@ func New(c config.Configuration, n *node.Node) *API {
 	return a
 }
 
+// Run starts the API server as specified in the configuration
 func (a *API) Run() {
 	e := echo.New()
 	e.HideBanner = true

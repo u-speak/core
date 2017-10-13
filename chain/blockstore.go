@@ -35,6 +35,7 @@ func (b *MemoryStore) Length() uint64 {
 	return uint64(len(b.raw))
 }
 
+// Keys returns a list of hashes of all existing blocks
 func (b *MemoryStore) Keys() [][32]byte {
 	hkeys := [][32]byte{}
 	for _, v := range b.raw {

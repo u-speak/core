@@ -23,6 +23,7 @@ func New(b BlockStore, validate ValidationFunc) *Chain {
 	return c
 }
 
+// Add adds a block to the chain
 func (c *Chain) Add(b Block) ([32]byte, error) {
 	hash := b.Hash()
 	if !c.validate(hash) {
