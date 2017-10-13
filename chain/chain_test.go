@@ -94,6 +94,17 @@ func TestRandomAccess(t *testing.T) {
 	}
 }
 
+func TestValidation(t *testing.T) {
+	c := dummyChain(t)
+	if !c.Valid() {
+		t.Error("Validation of valid chain failed")
+	}
+	c.blocks.(*MemoryStore).raw[4].Content = "MODIFIED"
+	if c.Valid() {
+		t.Error("Modified Chain reported as valid")
+	}
+}
+
 func BenchmarkAdd(b *testing.B) {
 	c := emptyChain()
 	for i := 0; i < b.N; i++ {
@@ -118,6 +129,8 @@ func BenchmarkValidation(b *testing.B) {
 	c := dummyChain(b)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c.IsValid()
+		if !c.Valid() {
+			b.Error("Chain validation failed")
+		}
 	}
 }

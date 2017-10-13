@@ -6,6 +6,7 @@ type BlockStore interface {
 	Add(Block)
 	Length() uint64
 	Keys() [][32]byte
+	Valid(func([32]byte) bool) bool
 }
 
 // MemoryStore is a basic implementation for the physical saving of concrete blocks.
@@ -40,4 +41,25 @@ func (b *MemoryStore) Keys() [][32]byte {
 		hkeys = append(hkeys, v.Hash())
 	}
 	return hkeys
+}
+
+func (b *MemoryStore) bloomFilter() map[[32]byte]bool {
+	f := make(map[[32]byte]bool)
+	for _, v := range b.raw {
+		f[v.Hash()] = true
+	}
+	return f
+}
+
+// Valid checks if all blocks are connected and have the required difficulty
+func (b *MemoryStore) Valid(v func([32]byte) bool) bool {
+	f := b.bloomFilter()
+	for _, b := range b.raw {
+		if !v(b.Hash()) {
+			return false
+		} else if !f[b.PrevHash] && b.Content != "GENESIS" {
+			return false
+		}
+	}
+	return true
 }

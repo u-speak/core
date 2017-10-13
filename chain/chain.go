@@ -38,7 +38,7 @@ func (c *Chain) Add(b Block) ([32]byte, error) {
 
 // DumpChain dumps the whole ordered chain in an array
 func (c *Chain) DumpChain() ([]*Block, error) {
-	if !c.IsValid() {
+	if !c.Valid() {
 		return []*Block{}, errors.New("Chain is not Valid! Cannot dump")
 	}
 	h := c.lastHash
@@ -56,22 +56,9 @@ func (c *Chain) Get(hash [32]byte) *Block {
 	return c.blocks.Get(hash)
 }
 
-// IsValid checks the chain for integrity and validation compliance
-func (c *Chain) IsValid() bool {
-	if c.lastHash == [32]byte{} {
-		return true
-	}
-	b := c.blocks.Get(c.lastHash)
-	for b != nil {
-		if b.PrevHash == [32]byte{} {
-			return true
-		}
-		if !c.validate(b.Hash()) {
-			return false
-		}
-		b = c.blocks.Get(b.PrevHash)
-	}
-	return false
+// Valid checks the chain for integrity and validation compliance
+func (c *Chain) Valid() bool {
+	return c.blocks.Valid(c.validate)
 }
 
 // LastHash returns the hash of the last block in the chain
