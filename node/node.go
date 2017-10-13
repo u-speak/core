@@ -14,10 +14,10 @@ type Node struct {
 }
 
 type Status struct {
-	Address     string
-	Version     string
-	Length      int
-	Connections int
+	Address     string `json:"address"`
+	Version     string `json:"version"`
+	Length      int    `json:"length"`
+	Connections int    `json:"connections"`
 }
 
 func validateAll([32]byte) bool {
