@@ -2,6 +2,7 @@ package chain
 
 import (
 	"crypto/sha256"
+	"strconv"
 	"time"
 )
 
@@ -15,12 +16,13 @@ type Block struct {
 	Date      time.Time
 }
 
-func (b *Block) Hash() [32]byte {
-	return sha256.Sum256(append([]byte(b.Signature+b.PubKey+string(b.Nonce)+b.Content+string(b.Date.Unix())), b.PrevHash[:]...))
+func (b Block) Hash() [32]byte {
+	bstr := "C" + b.Content + "T" + b.Type + "S" + b.Signature + "P" + b.PubKey + "D" + strconv.FormatUint(uint64(b.Date.Unix()), 10) + "N" + string(b.Nonce) + "PREV"
+	return sha256.Sum256(append([]byte(bstr), b.PrevHash[:]...))
 }
 
-func genesisBlock() *Block {
-	return &Block{
+func genesisBlock() Block {
+	return Block{
 		Nonce:     0,
 		PrevHash:  [32]byte{},
 		Content:   "GENESIS",

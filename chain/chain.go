@@ -23,16 +23,17 @@ func New(b BlockStore, validate ValidationFunc) *Chain {
 	return c
 }
 
-// AddData adds a new block to the chain
-func (c *Chain) AddData(content string, nonce uint) error {
-	b := &Block{Content: content, PrevHash: c.lastHash, Nonce: nonce}
+func (c *Chain) Add(b Block) ([32]byte, error) {
 	hash := b.Hash()
 	if !c.validate(hash) {
-		return errors.New("Block did not pass the validation function")
+		return [32]byte{}, errors.New("Block did not pass the validation function")
+	}
+	if b.PrevHash != c.lastHash {
+		return [32]byte{}, errors.New("Blocks PrevHash was not the lasthash")
 	}
 	c.blocks.Add(b)
 	c.lastHash = hash
-	return nil
+	return hash, nil
 }
 
 // DumpChain dumps the whole ordered chain in an array
@@ -81,15 +82,4 @@ func (c *Chain) LastHash() [32]byte {
 // Length returns the length of the whole chain
 func (c *Chain) Length() uint64 {
 	return c.blocks.Length()
-}
-
-// AddRaw adds a preconstructed block
-func (c *Chain) AddRaw(b *Block, last ...byte) error {
-	if len(last) != 0 {
-		var f [32]byte
-		copy(f[:], last)
-		c.lastHash = f
-	}
-	c.blocks.Add(b)
-	return nil
 }
