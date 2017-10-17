@@ -4,6 +4,11 @@ package config
 type Configuration struct {
 	Logger struct {
 		Format string `default:"default"`
+		Debug  bool   `default:"false"`
+	}
+	Global struct {
+		SSLCert string
+		SSLKey  string
 	}
 	NodeNetwork struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`

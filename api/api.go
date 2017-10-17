@@ -19,6 +19,8 @@ import (
 type API struct {
 	ListenInterface string
 	node            *node.Node
+	certfile        string
+	keyfile         string
 }
 
 type jsonBlock struct {
@@ -34,13 +36,13 @@ type jsonBlock struct {
 
 // New returns a configured instance of the API server
 func New(c config.Configuration, n *node.Node) *API {
-	a := &API{node: n}
+	a := &API{node: n, keyfile: c.Global.SSLKey, certfile: c.Global.SSLCert}
 	a.ListenInterface = c.Web.API.Interface + ":" + strconv.Itoa(c.Web.API.Port)
 	return a
 }
 
 // Run starts the API server as specified in the configuration
-func (a *API) Run() {
+func (a *API) Run() error {
 	e := echo.New()
 	e.HideBanner = true
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
@@ -52,7 +54,7 @@ func (a *API) Run() {
 	apiV1.GET("/chains/:type", a.getBlocks)
 	apiV1.GET("/search", a.getSearch)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
-	e.Logger.Error(e.Start(a.ListenInterface))
+	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)
 }
 
 func (a *API) getStatus(c echo.Context) error {

@@ -11,6 +11,8 @@ import (
 type Server struct {
 	Directory string
 	Interface string
+	certfile  string
+	keyfile   string
 }
 
 // New returns a configured instance of the Webserver
@@ -18,6 +20,8 @@ func New(config config.Configuration) *Server {
 	return &Server{
 		Directory: config.Web.Static.Directory,
 		Interface: config.Web.Static.Interface + ":" + strconv.Itoa(config.Web.Static.Port),
+		certfile:  config.Global.SSLCert,
+		keyfile:   config.Global.SSLKey,
 	}
 }
 
@@ -27,5 +31,5 @@ func (s *Server) Run() {
 	http.Handle("/", fs)
 
 	log.Infof("Starting static webserver with directory %s on interface %s", s.Directory, s.Interface)
-	log.Fatal(http.ListenAndServe(s.Interface, nil))
+	log.Fatal(http.ListenAndServeTLS(s.Interface, s.certfile, s.keyfile, nil))
 }

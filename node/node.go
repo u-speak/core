@@ -45,8 +45,6 @@ func (n *Node) Status() Status {
 // Run listens for connections to this node
 func (n *Node) Run() {
 	log.Debug("Simulating a running server")
-	for {
-	}
 }
 
 // SubmitBlock is called whenever a new block is submitted to the network

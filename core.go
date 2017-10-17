@@ -10,11 +10,9 @@ import (
 // Config keeps the global configuration
 var Config = config.Configuration{}
 
-// Run Starts all core components
-func Run() {
-	n := node.New(Config)
-	go n.Run()
-	api.New(Config, n).Run()
+// RunAPI starts the API server connected to the specific node
+func RunAPI(n *node.Node) {
+	_ = api.New(Config, n).Run()
 }
 
 // RunWeb starts a static webserver for the portal
