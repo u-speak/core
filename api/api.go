@@ -49,6 +49,7 @@ func (a *API) Run() {
 	apiV1.GET("/status", a.getStatus)
 	apiV1.GET("/chains/:type/:hash", a.getBlock)
 	apiV1.POST("/chains/:type", a.addBlock)
+	apiV1.GET("/chains/:type", a.getBlocks)
 	apiV1.GET("/search", a.getSearch)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	e.Logger.Error(e.Start(a.ListenInterface))
@@ -68,7 +69,23 @@ func (a *API) addBlock(c echo.Context) error {
 }
 
 func (a *API) getSearch(c echo.Context) error {
-	return c.JSON(http.StatusOK, []jsonBlock{jsonize(&chain.Block{Nonce: 2, Date: time.Now()})})
+	results := []jsonBlock{}
+	for i := 0; i < 50; i++ {
+		results = append(results, jsonize(&chain.Block{Nonce: 42, Date: time.Now(), Content: "Result" + strconv.Itoa(i)}))
+	}
+	return c.JSON(http.StatusOK, struct {
+		Results []jsonBlock `json:"results"`
+	}{Results: results})
+}
+
+func (a *API) getBlocks(c echo.Context) error {
+	results := []jsonBlock{}
+	for i := 0; i < 50; i++ {
+		results = append(results, jsonize(&chain.Block{Nonce: 42, Date: time.Now(), Content: "Block" + strconv.Itoa(i)}))
+	}
+	return c.JSON(http.StatusOK, struct {
+		Results []jsonBlock `json:"results"`
+	}{Results: results})
 }
 
 func jsonize(b *chain.Block) jsonBlock {
