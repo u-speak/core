@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/kpashka/echo-logrusmiddleware"
 	"github.com/labstack/echo"
@@ -21,6 +20,11 @@ type API struct {
 	node            *node.Node
 	certfile        string
 	keyfile         string
+}
+
+type Error struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
 }
 
 type jsonBlock struct {
@@ -58,11 +62,32 @@ func (a *API) Run() error {
 }
 
 func (a *API) getStatus(c echo.Context) error {
-	return c.JSON(http.StatusOK, &node.Status{Address: "example", Version: "1.0.0", Length: 0, Connections: 0})
+	return c.JSON(http.StatusOK, a.node.Status())
 }
 
 func (a *API) getBlock(c echo.Context) error {
-	return c.JSON(http.StatusOK, jsonize(&chain.Block{Date: time.Now()}))
+	rh, err := base64.URLEncoding.DecodeString(c.Param("hash"))
+	if err != nil {
+		return err
+	}
+	var h [32]byte
+	copy(h[:], rh)
+	var b *chain.Block
+	switch c.Param("type") {
+	case "post":
+		b = a.node.PostChain.Get(h)
+	case "image":
+		b = a.node.ImageChain.Get(h)
+	case "key":
+		b = a.node.KeyChain.Get(h)
+	default:
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid Chain Type", Code: http.StatusBadRequest})
+	}
+
+	if b == nil {
+		return c.JSON(http.StatusNotFound, Error{Message: "Block not found", Code: http.StatusNotFound})
+	}
+	return c.JSON(http.StatusOK, jsonize(b))
 }
 
 func (a *API) addBlock(c echo.Context) error {
@@ -72,8 +97,12 @@ func (a *API) addBlock(c echo.Context) error {
 
 func (a *API) getSearch(c echo.Context) error {
 	results := []jsonBlock{}
-	for i := 0; i < 50; i++ {
-		results = append(results, jsonize(&chain.Block{Nonce: 42, Date: time.Now(), Content: "Result" + strconv.Itoa(i)}))
+	bs := a.node.PostChain.Search(c.QueryParam("q"))
+	if len(bs) == 0 {
+		return c.JSON(http.StatusNotFound, Error{Message: "No results found", Code: http.StatusNotFound})
+	}
+	for _, b := range bs {
+		results = append(results, jsonize(b))
 	}
 	return c.JSON(http.StatusOK, struct {
 		Results []jsonBlock `json:"results"`
@@ -82,8 +111,13 @@ func (a *API) getSearch(c echo.Context) error {
 
 func (a *API) getBlocks(c echo.Context) error {
 	results := []jsonBlock{}
-	for i := 0; i < 50; i++ {
-		results = append(results, jsonize(&chain.Block{Nonce: 42, Date: time.Now(), Content: "Block" + strconv.Itoa(i)}))
+	switch c.Param("type") {
+	case "key", "image":
+		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "This operation is only supported for type=post"})
+	case "post":
+		for _, b := range a.node.ImageChain.Latest(10) {
+			results = append(results, jsonize(b))
+		}
 	}
 	return c.JSON(http.StatusOK, struct {
 		Results []jsonBlock `json:"results"`

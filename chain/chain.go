@@ -2,6 +2,7 @@ package chain
 
 import (
 	"errors"
+	"strings"
 )
 
 // ValidationFunc is the requirement for mining
@@ -70,4 +71,31 @@ func (c *Chain) LastHash() [32]byte {
 // Length returns the length of the whole chain
 func (c *Chain) Length() uint64 {
 	return c.blocks.Length()
+}
+
+// Latest returns the latest n blocks
+func (c *Chain) Latest(count int) []*Block {
+	b := c.Get(c.lastHash)
+	bs := []*Block{b}
+	for i := 0; i < count; i++ {
+		b = c.Get(b.PrevHash)
+		if b == nil {
+			break
+		}
+		bs = append(bs, b)
+	}
+	return bs
+}
+
+// Search performs a simple string search on the Content of each block
+func (c *Chain) Search(query string) []*Block {
+	b := c.Get(c.lastHash)
+	bs := []*Block{}
+	for b != nil {
+		if strings.Contains(b.Content, query) {
+			bs = append(bs, b)
+		}
+		b = c.Get(b.PrevHash)
+	}
+	return bs
 }

@@ -10,7 +10,9 @@ import (
 
 // Node is a wrapper around the chain. Nodes are the backbone of the network
 type Node struct {
-	Chain           *chain.Chain
+	PostChain       *chain.Chain
+	ImageChain      *chain.Chain
+	KeyChain        *chain.Chain
 	ListenInterface string
 }
 
@@ -30,7 +32,9 @@ func validateAll([32]byte) bool {
 func New(c config.Configuration) *Node {
 	return &Node{
 		ListenInterface: c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
-		Chain:           chain.New(&chain.MemoryStore{}, validateAll),
+		ImageChain:      chain.New(&chain.MemoryStore{}, validateAll),
+		KeyChain:        chain.New(&chain.MemoryStore{}, validateAll),
+		PostChain:       chain.New(&chain.MemoryStore{}, validateAll),
 	}
 }
 
@@ -38,7 +42,7 @@ func New(c config.Configuration) *Node {
 func (n *Node) Status() Status {
 	return Status{
 		Address: n.ListenInterface,
-		Length:  n.Chain.Length(),
+		Length:  n.PostChain.Length() + n.KeyChain.Length() + n.ImageChain.Length(),
 	}
 }
 
