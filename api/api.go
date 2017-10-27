@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/kpashka/echo-logrusmiddleware"
 	"github.com/labstack/echo"
@@ -91,7 +92,36 @@ func (a *API) getBlock(c echo.Context) error {
 }
 
 func (a *API) addBlock(c echo.Context) error {
-	a.node.SubmitBlock(chain.Block{})
+	block := new(jsonBlock)
+	if err := c.Bind(block); err != nil {
+		return err
+	}
+	b := chain.Block{
+		Content:   block.Content,
+		Signature: block.Signature,
+		Nonce:     block.Nonce,
+		Type:      block.Type,
+		Date:      time.Unix(block.Date, 0),
+		PubKey:    block.PubKey,
+	}
+	prevhash := [32]byte{}
+	hash := [32]byte{}
+	hashslice, err := base64.URLEncoding.DecodeString(block.Hash)
+	if err != nil {
+		return err
+	}
+	prevslice, err := base64.URLEncoding.DecodeString(block.PrevHash)
+	if err != nil {
+		return err
+	}
+	copy(prevhash[:], prevslice)
+	b.PrevHash = prevhash
+	copy(hash[:], hashslice)
+
+	if b.Hash() != hash {
+		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Block hash did not match its contents"})
+	}
+	a.node.SubmitBlock(b)
 	return c.NoContent(http.StatusCreated)
 }
 
