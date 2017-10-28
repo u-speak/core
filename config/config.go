@@ -10,6 +10,11 @@ type Configuration struct {
 		SSLCert string
 		SSLKey  string
 	}
+	Storage struct {
+		ImageDir string `default:"/var/lib/uspeak/data/images"`
+		KeyDir   string `default:"/var/lib/uspeak/data/keys"`
+		PostDir  string `default:"/var/lib/uspeak/data/posts"`
+	}
 	NodeNetwork struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`
 		Interface string `default:"127.0.0.1"`

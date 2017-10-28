@@ -29,13 +29,25 @@ func validateAll([32]byte) bool {
 }
 
 // New constructs a new node from the configuration
-func New(c config.Configuration) *Node {
+func New(c config.Configuration) (*Node, error) {
+	ic, err := chain.New(&chain.DiskStore{Folder: c.Storage.ImageDir}, validateAll)
+	if err != nil {
+		return nil, err
+	}
+	kc, err := chain.New(&chain.DiskStore{Folder: c.Storage.KeyDir}, validateAll)
+	if err != nil {
+		return nil, err
+	}
+	pc, err := chain.New(&chain.DiskStore{Folder: c.Storage.PostDir}, validateAll)
+	if err != nil {
+		return nil, err
+	}
 	return &Node{
 		ListenInterface: c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
-		ImageChain:      chain.New(&chain.MemoryStore{}, validateAll),
-		KeyChain:        chain.New(&chain.MemoryStore{}, validateAll),
-		PostChain:       chain.New(&chain.MemoryStore{}, validateAll),
-	}
+		ImageChain:      ic,
+		KeyChain:        kc,
+		PostChain:       pc,
+	}, nil
 }
 
 // Status returns the current running configuration of the node

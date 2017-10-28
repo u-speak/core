@@ -16,12 +16,14 @@ type Chain struct {
 }
 
 // New initializes a new Chain
-func New(b BlockStore, validate ValidationFunc) *Chain {
-	g := genesisBlock()
-	b.Add(g)
+func New(b BlockStore, validate ValidationFunc) (*Chain, error) {
+	lh, err := b.Init()
+	if err != nil {
+		return nil, err
+	}
 	c := &Chain{blocks: b, validate: validate}
-	c.lastHash = g.Hash()
-	return c
+	c.lastHash = lh
+	return c, nil
 }
 
 // Add adds a block to the chain
@@ -74,10 +76,10 @@ func (c *Chain) Length() uint64 {
 }
 
 // Latest returns the latest n blocks
-func (c *Chain) Latest(count int) []*Block {
+func (c *Chain) Latest(n int) []*Block {
 	b := c.Get(c.lastHash)
 	bs := []*Block{b}
-	for i := 0; i < count; i++ {
+	for i := 0; i < n; i++ {
 		b = c.Get(b.PrevHash)
 		if b == nil {
 			break
