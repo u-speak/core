@@ -76,7 +76,10 @@ func (c *Chain) Length() uint64 {
 }
 
 // Latest returns the latest n blocks
-func (c *Chain) Latest(n int) []*Block {
+func (c *Chain) Latest(n int) ([]*Block, error) {
+	if !c.Valid() {
+		return nil, errors.New("Chain Invalid")
+	}
 	b := c.Get(c.lastHash)
 	bs := []*Block{b}
 	for i := 0; i < n; i++ {
@@ -86,7 +89,7 @@ func (c *Chain) Latest(n int) []*Block {
 		}
 		bs = append(bs, b)
 	}
-	return bs
+	return bs, nil
 }
 
 // Search performs a simple string search on the Content of each block

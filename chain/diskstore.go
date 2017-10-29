@@ -111,22 +111,22 @@ func (b *DiskStore) Keys() [][32]byte {
 	return hkeys
 }
 
-func (b *DiskStore) bloomFilter() map[[32]byte]bool {
-	f := make(map[[32]byte]bool)
-	ks := b.Keys()
-	if ks == nil {
-		return nil
-	}
-	for _, h := range b.Keys() {
-		f[h] = true
-	}
-	return f
-}
-
 func (b *DiskStore) all() []*Block {
 	all := []*Block{}
-	for _, h := range b.Keys() {
-		bl := b.Get(h)
+	files, err := ioutil.ReadDir(b.Folder)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	for _, f := range files {
+		stat := [32]byte{}
+		h, err := base64.URLEncoding.DecodeString(f.Name())
+		if err != nil {
+			log.Warn(err)
+			continue
+		}
+		copy(stat[:], h)
+		bl := b.Get(stat)
 		if bl != nil {
 			all = append(all, bl)
 		}
@@ -136,8 +136,15 @@ func (b *DiskStore) all() []*Block {
 
 // Valid checks if all blocks are connected and have the required difficulty
 func (b *DiskStore) Valid(v func([32]byte) bool) bool {
-	f := b.bloomFilter()
-	for _, b := range b.all() {
+	a := b.all()
+	if len(a) == 0 {
+		return false
+	}
+	f := make(map[[32]byte]bool)
+	for _, h := range a {
+		f[h.Hash()] = true
+	}
+	for _, b := range a {
 		if !v(b.Hash()) {
 			return false
 		} else if !f[b.PrevHash] && b.Content != "GENESIS" {
