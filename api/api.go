@@ -145,7 +145,11 @@ func (a *API) getBlocks(c echo.Context) error {
 	case "key", "image":
 		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "This operation is only supported for type=post"})
 	case "post":
-		for _, b := range a.node.ImageChain.Latest(10) {
+		l, err := a.node.PostChain.Latest(10)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: err.Error()})
+		}
+		for _, b := range l {
 			results = append(results, jsonize(b))
 		}
 	}
