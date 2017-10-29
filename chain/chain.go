@@ -3,10 +3,14 @@ package chain
 import (
 	"errors"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // ValidationFunc is the requirement for mining
 type ValidationFunc func([32]byte) bool
+
+var ErrInvalidChain = errors.New("Chain Validation Failed")
 
 // Chain is a Blockchain Implementation
 type Chain struct {
@@ -23,11 +27,18 @@ func New(b BlockStore, validate ValidationFunc) (*Chain, error) {
 	}
 	c := &Chain{blocks: b, validate: validate}
 	c.lastHash = lh
+	if !c.Valid() {
+		log.WithField("store", b).Error("Could not initialize Chain")
+		return nil, ErrInvalidChain
+	}
 	return c, nil
 }
 
 // Add adds a block to the chain
 func (c *Chain) Add(b Block) ([32]byte, error) {
+	if !c.Valid() {
+		return [32]byte{}, ErrInvalidChain
+	}
 	hash := b.Hash()
 	if !c.validate(hash) {
 		return [32]byte{}, errors.New("Block did not pass the validation function")
@@ -43,7 +54,7 @@ func (c *Chain) Add(b Block) ([32]byte, error) {
 // DumpChain dumps the whole ordered chain in an array
 func (c *Chain) DumpChain() ([]*Block, error) {
 	if !c.Valid() {
-		return []*Block{}, errors.New("Chain is not Valid! Cannot dump")
+		return []*Block{}, ErrInvalidChain
 	}
 	h := c.lastHash
 	bl := []*Block{}
@@ -78,7 +89,7 @@ func (c *Chain) Length() uint64 {
 // Latest returns the latest n blocks
 func (c *Chain) Latest(n int) ([]*Block, error) {
 	if !c.Valid() {
-		return nil, errors.New("Chain Invalid")
+		return nil, ErrInvalidChain
 	}
 	b := c.Get(c.lastHash)
 	bs := []*Block{b}

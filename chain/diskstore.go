@@ -13,8 +13,7 @@ import (
 
 // DiskStore is a Blockstore implementation saving the blocks serialized to a Folder
 type DiskStore struct {
-	Folder  string
-	dirhash [32]byte
+	Folder string
 }
 
 // Init initializes the Diskstore
@@ -28,7 +27,10 @@ func (b *DiskStore) Init() ([32]byte, error) {
 	if len(a) == 0 {
 		log.Infof("Initializing empty chain in directory %s", b.Folder)
 		g := genesisBlock()
-		b.Add(g)
+		err := b.Add(g)
+		if err != nil {
+			return [32]byte{}, err
+		}
 		return g.Hash(), nil
 	}
 	for _, bl := range a {
