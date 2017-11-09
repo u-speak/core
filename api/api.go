@@ -51,8 +51,9 @@ func (a *API) Run() error {
 	e := echo.New()
 	e.HideBanner = true
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
+	e.Use(middleware.CORS())
 
-	apiV1 := e.Group("/api/v1", middleware.CORS())
+	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
 	apiV1.GET("/chains/:type/:hash", a.getBlock)
 	apiV1.POST("/chains/:type", a.addBlock)
