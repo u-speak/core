@@ -1,6 +1,7 @@
 package node
 
 import (
+	"encoding/base64"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -16,12 +17,25 @@ type Node struct {
 	ListenInterface string
 }
 
+type ChainStatus struct {
+	Valid    bool   `json:"valid"`
+	Length   uint64 `json:"length"`
+	LastHash string `json:"last_hash"`
+}
+
+type ChainStatusList struct {
+	Post  ChainStatus `json:"post"`
+	Image ChainStatus `json:"image"`
+	Key   ChainStatus `json:"key"`
+}
+
 // Status is used for reporting this nodes configuration to other nodes
 type Status struct {
-	Address     string `json:"address"`
-	Version     string `json:"version"`
-	Length      uint64 `json:"length"`
-	Connections int    `json:"connections"`
+	Address     string          `json:"address"`
+	Version     string          `json:"version"`
+	Length      uint64          `json:"length"`
+	Connections int             `json:"connections"`
+	Chains      ChainStatusList `json:"chains"`
 }
 
 func validateAll([32]byte) bool {
@@ -50,15 +64,24 @@ func New(c config.Configuration) (*Node, error) {
 	}, nil
 }
 
+func encHash(h [32]byte) string {
+	return base64.URLEncoding.EncodeToString(h[:])
+}
+
 // Status returns the current running configuration of the node
 func (n *Node) Status() Status {
 	return Status{
 		Address: n.ListenInterface,
 		Length:  n.PostChain.Length() + n.KeyChain.Length() + n.ImageChain.Length(),
+		Chains: ChainStatusList{
+			Post:  ChainStatus{Length: n.PostChain.Length(), Valid: n.PostChain.Valid(), LastHash: encHash(n.PostChain.LastHash())},
+			Image: ChainStatus{Length: n.ImageChain.Length(), Valid: n.ImageChain.Valid(), LastHash: encHash(n.ImageChain.LastHash())},
+			Key:   ChainStatus{Length: n.KeyChain.Length(), Valid: n.KeyChain.Valid(), LastHash: encHash(n.KeyChain.LastHash())},
+		},
 	}
 }
 
-// Run listens for connections to this node
+// Run listens for connections to this nodgit ammende
 func (n *Node) Run() {
 	log.Debug("Simulating a running server")
 }

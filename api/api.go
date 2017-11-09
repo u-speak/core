@@ -54,7 +54,6 @@ func (a *API) Run() error {
 
 	apiV1 := e.Group("/api/v1", middleware.CORS())
 	apiV1.GET("/status", a.getStatus)
-	apiV1.GET("/status/chains", a.getChainsStatus)
 	apiV1.GET("/chains/:type/:hash", a.getBlock)
 	apiV1.POST("/chains/:type", a.addBlock)
 	apiV1.GET("/chains/:type", a.getBlocks)
@@ -65,18 +64,6 @@ func (a *API) Run() error {
 
 func (a *API) getStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, a.node.Status())
-}
-
-func (a *API) getChainsStatus(c echo.Context) error {
-	return c.JSON(http.StatusOK, struct {
-		PostChain  bool `json:"postchain"`
-		ImageChain bool `json:"imagechain"`
-		KeyChain   bool `json:"keychain"`
-	}{
-		PostChain:  a.node.PostChain.Valid(),
-		ImageChain: a.node.ImageChain.Valid(),
-		KeyChain:   a.node.KeyChain.Valid(),
-	})
 }
 
 func (a *API) getBlock(c echo.Context) error {
