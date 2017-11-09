@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,8 +52,9 @@ func (a *API) Run() error {
 	e := echo.New()
 	e.HideBanner = true
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
+	e.Use(middleware.CORS())
 
-	apiV1 := e.Group("/api/v1", middleware.CORS())
+	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
 	apiV1.GET("/chains/:type/:hash", a.getBlock)
 	apiV1.POST("/chains/:type", a.addBlock)
@@ -91,6 +93,32 @@ func (a *API) getBlock(c echo.Context) error {
 	return c.JSON(http.StatusOK, jsonize(b))
 }
 
+func decodeHash(s string) ([32]byte, error) {
+	h := [32]byte{}
+	var hs []byte
+	hs, err := base64.URLEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	hs, err = base64.StdEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	hs, err = base64.RawURLEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	hs, err = base64.RawStdEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	return [32]byte{}, errors.New("Could not parse base64 data")
+}
+
 func (a *API) addBlock(c echo.Context) error {
 	block := new(jsonBlock)
 	if err := c.Bind(block); err != nil {
@@ -104,21 +132,26 @@ func (a *API) addBlock(c echo.Context) error {
 		Date:      time.Unix(block.Date, 0),
 		PubKey:    block.PubKey,
 	}
-	prevhash := [32]byte{}
-	hash := [32]byte{}
-	hashslice, err := base64.URLEncoding.DecodeString(block.Hash)
+	hash, err := decodeHash(block.Hash)
 	if err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, Error{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
 	}
-	prevslice, err := base64.URLEncoding.DecodeString(block.PrevHash)
-	if err != nil {
-		return err
-	}
-	copy(prevhash[:], prevslice)
-	b.PrevHash = prevhash
-	copy(hash[:], hashslice)
 
+	prevhash, err := decodeHash(block.PrevHash)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
+	}
+	b.PrevHash = prevhash
 	if b.Hash() != hash {
+		log.Debugf("+%v", b)
+		h := b.Hash()
+		log.Debugf("Should: %s, Was: %s", base64.URLEncoding.EncodeToString(h[:]), base64.URLEncoding.EncodeToString(hash[:]))
 		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Block hash did not match its contents"})
 	}
 	a.node.SubmitBlock(b)

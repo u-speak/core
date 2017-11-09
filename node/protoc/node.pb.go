@@ -8,11 +8,16 @@ It is generated from these files:
 	node.proto
 
 It has these top-level messages:
+<<<<<<< HEAD
 	Info
 	StatusParams
 	SyncParams
 	Block
 	PushReturn
+=======
+	NodeRequest
+	NodeResponse
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 */
 package node
 
@@ -36,6 +41,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+<<<<<<< HEAD
 type Info struct {
 	Version  string `protobuf:"bytes,1,opt,name=Version" json:"Version,omitempty"`
 	Valid    bool   `protobuf:"varint,2,opt,name=Valid" json:"Valid,omitempty"`
@@ -51,10 +57,25 @@ func (*Info) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 func (m *Info) GetVersion() string {
 	if m != nil {
 		return m.Version
+=======
+type NodeRequest struct {
+	Message string `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
+}
+
+func (m *NodeRequest) Reset()                    { *m = NodeRequest{} }
+func (m *NodeRequest) String() string            { return proto.CompactTextString(m) }
+func (*NodeRequest) ProtoMessage()               {}
+func (*NodeRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
+func (m *NodeRequest) GetMessage() string {
+	if m != nil {
+		return m.Message
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	}
 	return ""
 }
 
+<<<<<<< HEAD
 func (m *Info) GetValid() bool {
 	if m != nil {
 		return m.Valid
@@ -123,10 +144,25 @@ func (*Block) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 func (m *Block) GetContent() string {
 	if m != nil {
 		return m.Content
+=======
+type NodeResponse struct {
+	Message string `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
+}
+
+func (m *NodeResponse) Reset()                    { *m = NodeResponse{} }
+func (m *NodeResponse) String() string            { return proto.CompactTextString(m) }
+func (*NodeResponse) ProtoMessage()               {}
+func (*NodeResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *NodeResponse) GetMessage() string {
+	if m != nil {
+		return m.Message
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	}
 	return ""
 }
 
+<<<<<<< HEAD
 func (m *Block) GetNonce() uint32 {
 	if m != nil {
 		return m.Nonce
@@ -162,6 +198,11 @@ func init() {
 	proto.RegisterType((*SyncParams)(nil), "SyncParams")
 	proto.RegisterType((*Block)(nil), "Block")
 	proto.RegisterType((*PushReturn)(nil), "PushReturn")
+=======
+func init() {
+	proto.RegisterType((*NodeRequest)(nil), "node.NodeRequest")
+	proto.RegisterType((*NodeResponse)(nil), "node.NodeResponse")
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -172,6 +213,7 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
+<<<<<<< HEAD
 // Client API for DistributionService service
 
 type DistributionServiceClient interface {
@@ -232,12 +274,32 @@ func (x *distributionServiceSynchronizeClient) Recv() (*Block, error) {
 func (c *distributionServiceClient) Receive(ctx context.Context, in *Block, opts ...grpc.CallOption) (*PushReturn, error) {
 	out := new(PushReturn)
 	err := grpc.Invoke(ctx, "/DistributionService/Receive", in, out, c.cc, opts...)
+=======
+// Client API for NodeService service
+
+type NodeServiceClient interface {
+	SendNodeMessage(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
+}
+
+type nodeServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewNodeServiceClient(cc *grpc.ClientConn) NodeServiceClient {
+	return &nodeServiceClient{cc}
+}
+
+func (c *nodeServiceClient) SendNodeMessage(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
+	out := new(NodeResponse)
+	err := grpc.Invoke(ctx, "/node.NodeService/SendNodeMessage", in, out, c.cc, opts...)
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
+<<<<<<< HEAD
 // Server API for DistributionService service
 
 type DistributionServiceServer interface {
@@ -291,10 +353,25 @@ func (x *distributionServiceSynchronizeServer) Send(m *Block) error {
 
 func _DistributionService_Receive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Block)
+=======
+// Server API for NodeService service
+
+type NodeServiceServer interface {
+	SendNodeMessage(context.Context, *NodeRequest) (*NodeResponse, error)
+}
+
+func RegisterNodeServiceServer(s *grpc.Server, srv NodeServiceServer) {
+	s.RegisterService(&_NodeService_serviceDesc, srv)
+}
+
+func _NodeService_SendNodeMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeRequest)
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
+<<<<<<< HEAD
 		return srv.(DistributionServiceServer).Receive(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
@@ -303,10 +380,21 @@ func _DistributionService_Receive_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DistributionServiceServer).Receive(ctx, req.(*Block))
+=======
+		return srv.(NodeServiceServer).SendNodeMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/node.NodeService/SendNodeMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodeServiceServer).SendNodeMessage(ctx, req.(*NodeRequest))
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
+<<<<<<< HEAD
 var _DistributionService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "DistributionService",
 	HandlerType: (*DistributionServiceServer)(nil),
@@ -327,12 +415,25 @@ var _DistributionService_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
+=======
+var _NodeService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "node.NodeService",
+	HandlerType: (*NodeServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendNodeMessage",
+			Handler:    _NodeService_SendNodeMessage_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	Metadata: "node.proto",
 }
 
 func init() { proto.RegisterFile("node.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
+<<<<<<< HEAD
 	// 308 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x91, 0x4f, 0x4b, 0xf3, 0x40,
 	0x10, 0xc6, 0xbb, 0xef, 0x9b, 0xfe, 0x71, 0x9a, 0x5e, 0x56, 0x91, 0x90, 0x53, 0xdc, 0x83, 0xe4,
@@ -354,4 +455,16 @@ var fileDescriptor0 = []byte{
 	0x77, 0xc3, 0x78, 0x06, 0x43, 0x89, 0x15, 0xaa, 0x1d, 0xf2, 0x76, 0x9d, 0x8e, 0x8b, 0xa3, 0x82,
 	0xe8, 0xad, 0x06, 0xe1, 0xf1, 0xee, 0x7e, 0x03, 0x00, 0x00, 0xff, 0xff, 0xbd, 0xe6, 0x64, 0xfd,
 	0xca, 0x01, 0x00, 0x00,
+=======
+	// 132 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0xcb, 0x4f, 0x49,
+	0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x01, 0xb1, 0x95, 0xd4, 0xb9, 0xb8, 0xfd, 0xf2,
+	0x53, 0x52, 0x83, 0x52, 0x0b, 0x4b, 0x53, 0x8b, 0x4b, 0x84, 0x24, 0xb8, 0xd8, 0x73, 0x53, 0x8b,
+	0x8b, 0x13, 0xd3, 0x53, 0x25, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0x60, 0x5c, 0x25, 0x0d, 0x2e,
+	0x1e, 0x88, 0xc2, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0xdc, 0x2a, 0x8d, 0xdc, 0x21, 0x46, 0x06,
+	0xa7, 0x16, 0x95, 0x65, 0x26, 0xa7, 0x0a, 0x59, 0x70, 0xf1, 0x07, 0xa7, 0xe6, 0xa5, 0x80, 0x84,
+	0x7c, 0x21, 0x2a, 0x84, 0x04, 0xf5, 0xc0, 0xee, 0x40, 0xb2, 0x58, 0x4a, 0x08, 0x59, 0x08, 0x62,
+	0x45, 0x12, 0x1b, 0xd8, 0xa1, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x34, 0x62, 0x68, 0x9e,
+	0xb6, 0x00, 0x00, 0x00,
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 }

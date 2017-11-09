@@ -1,7 +1,11 @@
 package node
 
 import (
+<<<<<<< HEAD
 	"errors"
+=======
+	"encoding/base64"
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 	"strconv"
 	"google.golang.org/grpc"
 	"net"
@@ -21,12 +25,25 @@ type Node struct {
 	remoteConnections map[string]*grpc.ClientConn
 }
 
+type ChainStatus struct {
+	Valid    bool   `json:"valid"`
+	Length   uint64 `json:"length"`
+	LastHash string `json:"last_hash"`
+}
+
+type ChainStatusList struct {
+	Post  ChainStatus `json:"post"`
+	Image ChainStatus `json:"image"`
+	Key   ChainStatus `json:"key"`
+}
+
 // Status is used for reporting this nodes configuration to other nodes
 type Status struct {
-	Address     string `json:"address"`
-	Version     string `json:"version"`
-	Length      uint64 `json:"length"`
-	Connections int    `json:"connections"`
+	Address     string          `json:"address"`
+	Version     string          `json:"version"`
+	Length      uint64          `json:"length"`
+	Connections int             `json:"connections"`
+	Chains      ChainStatusList `json:"chains"`
 }
 
 func validateAll([32]byte) bool {
@@ -56,14 +73,24 @@ func New(c config.Configuration) (*Node, error) {
 	}, nil
 }
 
+func encHash(h [32]byte) string {
+	return base64.URLEncoding.EncodeToString(h[:])
+}
+
 // Status returns the current running configuration of the node
 func (n *Node) Status() Status {
 	return Status{
 		Address: n.ListenInterface,
 		Length:  n.PostChain.Length() + n.KeyChain.Length() + n.ImageChain.Length(),
+		Chains: ChainStatusList{
+			Post:  ChainStatus{Length: n.PostChain.Length(), Valid: n.PostChain.Valid(), LastHash: encHash(n.PostChain.LastHash())},
+			Image: ChainStatus{Length: n.ImageChain.Length(), Valid: n.ImageChain.Valid(), LastHash: encHash(n.ImageChain.LastHash())},
+			Key:   ChainStatus{Length: n.KeyChain.Length(), Valid: n.KeyChain.Valid(), LastHash: encHash(n.KeyChain.LastHash())},
+		},
 	}
 }
 
+<<<<<<< HEAD
 
 func (s *Node) GetInfo(ctx context.Context, params *d.StatusParams) (*d.Info, error) {
 	if _, contained := s.remoteConnections[params.Host]; !contained {
@@ -80,6 +107,9 @@ func (s *Node) GetInfo(ctx context.Context, params *d.StatusParams) (*d.Info, er
 
 
 // Run listens for connections to this node
+=======
+// Run listens for connections to this nodgit ammende
+>>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
 func (n *Node) Run() {
 //	fmt.Println(config.NodeNetwork.Interface)
 //	fmt.Println(config.NodeNetwork.Interface)
