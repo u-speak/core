@@ -54,11 +54,29 @@ func (a *API) Run() error {
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 	e.Use(middleware.CORS())
 
+	validateChain := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			var ch *chain.Chain
+			switch c.Param("type") {
+			case "post":
+				ch = a.node.PostChain
+			case "image":
+				ch = a.node.ImageChain
+			case "key":
+				ch = a.node.KeyChain
+			}
+			if !ch.Valid() {
+				return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: chain.ErrInvalidChain.Error()})
+			}
+			return next(c)
+		}
+	}
+
 	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
-	apiV1.GET("/chains/:type/:hash", a.getBlock)
-	apiV1.POST("/chains/:type", a.addBlock)
-	apiV1.GET("/chains/:type", a.getBlocks)
+	apiV1.GET("/chains/:type/:hash", a.getBlock, validateChain)
+	apiV1.POST("/chains/:type", a.addBlock, validateChain)
+	apiV1.GET("/chains/:type", a.getBlocks, validateChain)
 	apiV1.GET("/search", a.getSearch)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)

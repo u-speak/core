@@ -105,6 +105,9 @@ func (c *Chain) Latest(n int) ([]*Block, error) {
 
 // Search performs a simple string search on the Content of each block
 func (c *Chain) Search(query string) []*Block {
+	if !c.Valid() {
+		return []*Block{}
+	}
 	b := c.Get(c.lastHash)
 	bs := []*Block{}
 	for b != nil {
