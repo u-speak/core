@@ -110,7 +110,7 @@ func (n *Node) Run() {
 	log.Infof("Starting Nodeserver on %s", n.ListenInterface)
 	lis, err := net.Listen("tcp", n.ListenInterface)
 	if err != nil {
-		log.Error("Could not listen on %s: %s", n.ListenInterface, err)
+		log.Errorf("Could not listen on %s: %s", n.ListenInterface, err)
 	}
 	grpcServer := grpc.NewServer()
 	d.RegisterDistributionServiceServer(grpcServer, n)
