@@ -73,7 +73,7 @@ func (c *Chain) Get(hash [32]byte) *Block {
 
 // Valid checks the chain for integrity and validation compliance
 func (c *Chain) Valid() bool {
-	return c.blocks.Valid(c.validate)
+	return c.blocks.Valid(c.validate) && c.Get(c.lastHash) != nil
 }
 
 // LastHash returns the hash of the last block in the chain
