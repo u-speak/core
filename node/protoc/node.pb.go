@@ -5,19 +5,14 @@
 Package node is a generated protocol buffer package.
 
 It is generated from these files:
-	node.proto
+        node.proto
 
 It has these top-level messages:
-<<<<<<< HEAD
-	Info
-	StatusParams
-	SyncParams
-	Block
-	PushReturn
-=======
-	NodeRequest
-	NodeResponse
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
+        Info
+        StatusParams
+        SyncParams
+        Block
+        PushReturn
 */
 package node
 
@@ -26,8 +21,8 @@ import fmt "fmt"
 import math "math"
 
 import (
-	context "golang.org/x/net/context"
-	grpc "google.golang.org/grpc"
+        context "golang.org/x/net/context"
+        grpc "google.golang.org/grpc"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -41,12 +36,11 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-<<<<<<< HEAD
 type Info struct {
-	Version  string `protobuf:"bytes,1,opt,name=Version" json:"Version,omitempty"`
-	Valid    bool   `protobuf:"varint,2,opt,name=Valid" json:"Valid,omitempty"`
-	Length   uint64 `protobuf:"varint,3,opt,name=Length" json:"Length,omitempty"`
-	LastHash []byte `protobuf:"bytes,4,opt,name=LastHash,proto3" json:"LastHash,omitempty"`
+        Version  string `protobuf:"bytes,1,opt,name=Version" json:"Version,omitempty"`
+        Valid    bool   `protobuf:"varint,2,opt,name=Valid" json:"Valid,omitempty"`
+        Length   uint64 `protobuf:"varint,3,opt,name=Length" json:"Length,omitempty"`
+        LastHash []byte `protobuf:"bytes,4,opt,name=LastHash,proto3" json:"LastHash,omitempty"`
 }
 
 func (m *Info) Reset()                    { *m = Info{} }
@@ -55,50 +49,35 @@ func (*Info) ProtoMessage()               {}
 func (*Info) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
 func (m *Info) GetVersion() string {
-	if m != nil {
-		return m.Version
-=======
-type NodeRequest struct {
-	Message string `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
+        if m != nil {
+                return m.Version
+        }
+        return ""
 }
 
-func (m *NodeRequest) Reset()                    { *m = NodeRequest{} }
-func (m *NodeRequest) String() string            { return proto.CompactTextString(m) }
-func (*NodeRequest) ProtoMessage()               {}
-func (*NodeRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
-
-func (m *NodeRequest) GetMessage() string {
-	if m != nil {
-		return m.Message
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
-	}
-	return ""
-}
-
-<<<<<<< HEAD
 func (m *Info) GetValid() bool {
-	if m != nil {
-		return m.Valid
-	}
-	return false
+        if m != nil {
+                return m.Valid
+        }
+        return false
 }
 
 func (m *Info) GetLength() uint64 {
-	if m != nil {
-		return m.Length
-	}
-	return 0
+        if m != nil {
+                return m.Length
+        }
+        return 0
 }
 
 func (m *Info) GetLastHash() []byte {
-	if m != nil {
-		return m.LastHash
-	}
-	return nil
+        if m != nil {
+                return m.LastHash
+        }
+        return nil
 }
 
 type StatusParams struct {
-	Host string `protobuf:"bytes,1,opt,name=Host" json:"Host,omitempty"`
+        Host string `protobuf:"bytes,1,opt,name=Host" json:"Host,omitempty"`
 }
 
 func (m *StatusParams) Reset()                    { *m = StatusParams{} }
@@ -107,14 +86,14 @@ func (*StatusParams) ProtoMessage()               {}
 func (*StatusParams) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
 func (m *StatusParams) GetHost() string {
-	if m != nil {
-		return m.Host
-	}
-	return ""
+        if m != nil {
+                return m.Host
+        }
+        return ""
 }
 
 type SyncParams struct {
-	LastHash []byte `protobuf:"bytes,1,opt,name=LastHash,proto3" json:"LastHash,omitempty"`
+        LastHash []byte `protobuf:"bytes,1,opt,name=LastHash,proto3" json:"LastHash,omitempty"`
 }
 
 func (m *SyncParams) Reset()                    { *m = SyncParams{} }
@@ -123,17 +102,17 @@ func (*SyncParams) ProtoMessage()               {}
 func (*SyncParams) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 func (m *SyncParams) GetLastHash() []byte {
-	if m != nil {
-		return m.LastHash
-	}
-	return nil
+        if m != nil {
+                return m.LastHash
+        }
+        return nil
 }
 
 type Block struct {
-	Content  string `protobuf:"bytes,1,opt,name=Content" json:"Content,omitempty"`
-	Nonce    uint32 `protobuf:"varint,2,opt,name=Nonce" json:"Nonce,omitempty"`
-	Previous []byte `protobuf:"bytes,3,opt,name=Previous,proto3" json:"Previous,omitempty"`
-	Last     []byte `protobuf:"bytes,4,opt,name=Last,proto3" json:"Last,omitempty"`
+        Content  string `protobuf:"bytes,1,opt,name=Content" json:"Content,omitempty"`
+        Nonce    uint32 `protobuf:"varint,2,opt,name=Nonce" json:"Nonce,omitempty"`
+        Previous []byte `protobuf:"bytes,3,opt,name=Previous,proto3" json:"Previous,omitempty"`
+        Last     []byte `protobuf:"bytes,4,opt,name=Last,proto3" json:"Last,omitempty"`
 }
 
 func (m *Block) Reset()                    { *m = Block{} }
@@ -142,46 +121,31 @@ func (*Block) ProtoMessage()               {}
 func (*Block) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
 func (m *Block) GetContent() string {
-	if m != nil {
-		return m.Content
-=======
-type NodeResponse struct {
-	Message string `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
+        if m != nil {
+                return m.Content
+        }
+        return ""
 }
 
-func (m *NodeResponse) Reset()                    { *m = NodeResponse{} }
-func (m *NodeResponse) String() string            { return proto.CompactTextString(m) }
-func (*NodeResponse) ProtoMessage()               {}
-func (*NodeResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
-
-func (m *NodeResponse) GetMessage() string {
-	if m != nil {
-		return m.Message
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
-	}
-	return ""
-}
-
-<<<<<<< HEAD
 func (m *Block) GetNonce() uint32 {
-	if m != nil {
-		return m.Nonce
-	}
-	return 0
+        if m != nil {
+                return m.Nonce
+        }
+        return 0
 }
 
 func (m *Block) GetPrevious() []byte {
-	if m != nil {
-		return m.Previous
-	}
-	return nil
+        if m != nil {
+                return m.Previous
+        }
+        return nil
 }
 
 func (m *Block) GetLast() []byte {
-	if m != nil {
-		return m.Last
-	}
-	return nil
+        if m != nil {
+                return m.Last
+        }
+        return nil
 }
 
 type PushReturn struct {
@@ -193,16 +157,11 @@ func (*PushReturn) ProtoMessage()               {}
 func (*PushReturn) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
 func init() {
-	proto.RegisterType((*Info)(nil), "Info")
-	proto.RegisterType((*StatusParams)(nil), "StatusParams")
-	proto.RegisterType((*SyncParams)(nil), "SyncParams")
-	proto.RegisterType((*Block)(nil), "Block")
-	proto.RegisterType((*PushReturn)(nil), "PushReturn")
-=======
-func init() {
-	proto.RegisterType((*NodeRequest)(nil), "node.NodeRequest")
-	proto.RegisterType((*NodeResponse)(nil), "node.NodeResponse")
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
+        proto.RegisterType((*Info)(nil), "Info")
+        proto.RegisterType((*StatusParams)(nil), "StatusParams")
+        proto.RegisterType((*SyncParams)(nil), "SyncParams")
+        proto.RegisterType((*Block)(nil), "Block")
+        proto.RegisterType((*PushReturn)(nil), "PushReturn")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -213,258 +172,186 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-<<<<<<< HEAD
 // Client API for DistributionService service
 
 type DistributionServiceClient interface {
-	GetInfo(ctx context.Context, in *StatusParams, opts ...grpc.CallOption) (*Info, error)
-	Synchronize(ctx context.Context, in *SyncParams, opts ...grpc.CallOption) (DistributionService_SynchronizeClient, error)
-	Receive(ctx context.Context, in *Block, opts ...grpc.CallOption) (*PushReturn, error)
+        GetInfo(ctx context.Context, in *StatusParams, opts ...grpc.CallOption) (*Info, error)
+        Synchronize(ctx context.Context, in *SyncParams, opts ...grpc.CallOption) (DistributionService_SynchronizeClient, error)
+        Receive(ctx context.Context, in *Block, opts ...grpc.CallOption) (*PushReturn, error)
 }
 
 type distributionServiceClient struct {
-	cc *grpc.ClientConn
+        cc *grpc.ClientConn
 }
 
 func NewDistributionServiceClient(cc *grpc.ClientConn) DistributionServiceClient {
-	return &distributionServiceClient{cc}
+        return &distributionServiceClient{cc}
 }
 
 func (c *distributionServiceClient) GetInfo(ctx context.Context, in *StatusParams, opts ...grpc.CallOption) (*Info, error) {
-	out := new(Info)
-	err := grpc.Invoke(ctx, "/DistributionService/GetInfo", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+        out := new(Info)
+        err := grpc.Invoke(ctx, "/DistributionService/GetInfo", in, out, c.cc, opts...)
+        if err != nil {
+                return nil, err
+        }
+        return out, nil
 }
 
 func (c *distributionServiceClient) Synchronize(ctx context.Context, in *SyncParams, opts ...grpc.CallOption) (DistributionService_SynchronizeClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_DistributionService_serviceDesc.Streams[0], c.cc, "/DistributionService/Synchronize", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &distributionServiceSynchronizeClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+        stream, err := grpc.NewClientStream(ctx, &_DistributionService_serviceDesc.Streams[0], c.cc, "/DistributionService/Synchronize", opts...)
+        if err != nil {
+                return nil, err
+        }
+        x := &distributionServiceSynchronizeClient{stream}
+        if err := x.ClientStream.SendMsg(in); err != nil {
+                return nil, err
+        }
+        if err := x.ClientStream.CloseSend(); err != nil {
+                return nil, err
+        }
+        return x, nil
 }
 
 type DistributionService_SynchronizeClient interface {
-	Recv() (*Block, error)
-	grpc.ClientStream
+        Recv() (*Block, error)
+        grpc.ClientStream
 }
 
 type distributionServiceSynchronizeClient struct {
-	grpc.ClientStream
+        grpc.ClientStream
 }
 
 func (x *distributionServiceSynchronizeClient) Recv() (*Block, error) {
-	m := new(Block)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+        m := new(Block)
+        if err := x.ClientStream.RecvMsg(m); err != nil {
+                return nil, err
+        }
+        return m, nil
 }
 
 func (c *distributionServiceClient) Receive(ctx context.Context, in *Block, opts ...grpc.CallOption) (*PushReturn, error) {
-	out := new(PushReturn)
-	err := grpc.Invoke(ctx, "/DistributionService/Receive", in, out, c.cc, opts...)
-=======
-// Client API for NodeService service
-
-type NodeServiceClient interface {
-	SendNodeMessage(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
+        out := new(PushReturn)
+        err := grpc.Invoke(ctx, "/DistributionService/Receive", in, out, c.cc, opts...)
+        if err != nil {
+                return nil, err
+        }
+        return out, nil
 }
 
-type nodeServiceClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewNodeServiceClient(cc *grpc.ClientConn) NodeServiceClient {
-	return &nodeServiceClient{cc}
-}
-
-func (c *nodeServiceClient) SendNodeMessage(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
-	out := new(NodeResponse)
-	err := grpc.Invoke(ctx, "/node.NodeService/SendNodeMessage", in, out, c.cc, opts...)
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-<<<<<<< HEAD
 // Server API for DistributionService service
 
 type DistributionServiceServer interface {
-	GetInfo(context.Context, *StatusParams) (*Info, error)
-	Synchronize(*SyncParams, DistributionService_SynchronizeServer) error
-	Receive(context.Context, *Block) (*PushReturn, error)
+        GetInfo(context.Context, *StatusParams) (*Info, error)
+        Synchronize(*SyncParams, DistributionService_SynchronizeServer) error
+        Receive(context.Context, *Block) (*PushReturn, error)
 }
 
 func RegisterDistributionServiceServer(s *grpc.Server, srv DistributionServiceServer) {
-	s.RegisterService(&_DistributionService_serviceDesc, srv)
+        s.RegisterService(&_DistributionService_serviceDesc, srv)
 }
 
 func _DistributionService_GetInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatusParams)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DistributionServiceServer).GetInfo(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/DistributionService/GetInfo",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DistributionServiceServer).GetInfo(ctx, req.(*StatusParams))
-	}
-	return interceptor(ctx, in, info, handler)
+        in := new(StatusParams)
+        if err := dec(in); err != nil {
+                return nil, err
+        }
+        if interceptor == nil {
+                return srv.(DistributionServiceServer).GetInfo(ctx, in)
+        }
+        info := &grpc.UnaryServerInfo{
+                Server:     srv,
+                FullMethod: "/DistributionService/GetInfo",
+        }
+        handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+                return srv.(DistributionServiceServer).GetInfo(ctx, req.(*StatusParams))
+        }
+        return interceptor(ctx, in, info, handler)
 }
 
 func _DistributionService_Synchronize_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SyncParams)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(DistributionServiceServer).Synchronize(m, &distributionServiceSynchronizeServer{stream})
+        m := new(SyncParams)
+        if err := stream.RecvMsg(m); err != nil {
+                return err
+        }
+        return srv.(DistributionServiceServer).Synchronize(m, &distributionServiceSynchronizeServer{stream})
 }
 
 type DistributionService_SynchronizeServer interface {
-	Send(*Block) error
-	grpc.ServerStream
+        Send(*Block) error
+        grpc.ServerStream
 }
 
 type distributionServiceSynchronizeServer struct {
-	grpc.ServerStream
+        grpc.ServerStream
 }
 
 func (x *distributionServiceSynchronizeServer) Send(m *Block) error {
-	return x.ServerStream.SendMsg(m)
+        return x.ServerStream.SendMsg(m)
 }
 
 func _DistributionService_Receive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Block)
-=======
-// Server API for NodeService service
-
-type NodeServiceServer interface {
-	SendNodeMessage(context.Context, *NodeRequest) (*NodeResponse, error)
+        in := new(Block)
+        if err := dec(in); err != nil {
+                return nil, err
+        }
+        if interceptor == nil {
+                return srv.(DistributionServiceServer).Receive(ctx, in)
+        }
+        info := &grpc.UnaryServerInfo{
+                Server:     srv,
+                FullMethod: "/DistributionService/Receive",
+        }
+        handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+                return srv.(DistributionServiceServer).Receive(ctx, req.(*Block))
+        }
+        return interceptor(ctx, in, info, handler)
 }
 
-func RegisterNodeServiceServer(s *grpc.Server, srv NodeServiceServer) {
-	s.RegisterService(&_NodeService_serviceDesc, srv)
-}
-
-func _NodeService_SendNodeMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeRequest)
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-<<<<<<< HEAD
-		return srv.(DistributionServiceServer).Receive(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/DistributionService/Receive",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DistributionServiceServer).Receive(ctx, req.(*Block))
-=======
-		return srv.(NodeServiceServer).SendNodeMessage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/node.NodeService/SendNodeMessage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NodeServiceServer).SendNodeMessage(ctx, req.(*NodeRequest))
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-<<<<<<< HEAD
 var _DistributionService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "DistributionService",
-	HandlerType: (*DistributionServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "GetInfo",
-			Handler:    _DistributionService_GetInfo_Handler,
-		},
-		{
-			MethodName: "Receive",
-			Handler:    _DistributionService_Receive_Handler,
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "Synchronize",
-			Handler:       _DistributionService_Synchronize_Handler,
-			ServerStreams: true,
-		},
-	},
-=======
-var _NodeService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "node.NodeService",
-	HandlerType: (*NodeServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "SendNodeMessage",
-			Handler:    _NodeService_SendNodeMessage_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
-	Metadata: "node.proto",
+        ServiceName: "DistributionService",
+        HandlerType: (*DistributionServiceServer)(nil),
+        Methods: []grpc.MethodDesc{
+                {
+                        MethodName: "GetInfo",
+                        Handler:    _DistributionService_GetInfo_Handler,
+                },
+                {
+                        MethodName: "Receive",
+                        Handler:    _DistributionService_Receive_Handler,
+                },
+        },
+        Streams: []grpc.StreamDesc{
+                {
+                        StreamName:    "Synchronize",
+                        Handler:       _DistributionService_Synchronize_Handler,
+                        ServerStreams: true,
+                },
+        },
+        Metadata: "node.proto",
 }
 
 func init() { proto.RegisterFile("node.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-<<<<<<< HEAD
-	// 308 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x91, 0x4f, 0x4b, 0xf3, 0x40,
-	0x10, 0xc6, 0xbb, 0xef, 0x9b, 0xfe, 0x71, 0x9a, 0x5e, 0x56, 0x91, 0x90, 0x53, 0xdc, 0x83, 0xe4,
-	0x14, 0x44, 0xbf, 0x81, 0x0a, 0x56, 0x28, 0x52, 0xb6, 0xd0, 0x7b, 0x9a, 0x8e, 0xcd, 0x6a, 0xdd,
-	0x91, 0xdd, 0x4d, 0x41, 0x8f, 0x7e, 0x72, 0xd9, 0x6d, 0xd2, 0x16, 0x6f, 0xf3, 0x1b, 0xc2, 0x33,
-	0xbf, 0x27, 0x0b, 0xa0, 0x69, 0x8d, 0xc5, 0xa7, 0x21, 0x47, 0xe2, 0x0d, 0xa2, 0x67, 0xfd, 0x4a,
-	0x3c, 0x81, 0xe1, 0x12, 0x8d, 0x55, 0xa4, 0x13, 0x96, 0xb1, 0xfc, 0x4c, 0x76, 0xc8, 0x2f, 0xa0,
-	0xbf, 0x2c, 0xb7, 0x6a, 0x9d, 0xfc, 0xcb, 0x58, 0x3e, 0x92, 0x7b, 0xe0, 0x97, 0x30, 0x98, 0xa1,
-	0xde, 0xb8, 0x3a, 0xf9, 0x9f, 0xb1, 0x3c, 0x92, 0x2d, 0xf1, 0x14, 0x46, 0xb3, 0xd2, 0xba, 0x69,
-	0x69, 0xeb, 0x24, 0xca, 0x58, 0x1e, 0xcb, 0x03, 0x0b, 0x01, 0xf1, 0xc2, 0x95, 0xae, 0xb1, 0xf3,
-	0xd2, 0x94, 0x1f, 0x96, 0x73, 0x88, 0xa6, 0x64, 0x5d, 0x7b, 0x30, 0xcc, 0x22, 0x07, 0x58, 0x7c,
-	0xe9, 0xaa, 0xfd, 0xe2, 0x34, 0x8d, 0xfd, 0x49, 0xdb, 0x40, 0xff, 0x7e, 0x4b, 0xd5, 0xbb, 0x57,
-	0x7f, 0x20, 0xed, 0x50, 0x77, 0x49, 0x1d, 0x7a, 0xf5, 0x17, 0xd2, 0x15, 0x06, 0xf5, 0x89, 0xdc,
-	0x83, 0x0f, 0x9d, 0x1b, 0xdc, 0x29, 0x6a, 0x6c, 0x90, 0x8f, 0xe5, 0x81, 0xbd, 0x92, 0x3f, 0xd0,
-	0xaa, 0x87, 0x59, 0xc4, 0x00, 0xf3, 0xc6, 0xd6, 0x12, 0x5d, 0x63, 0xf4, 0xed, 0x0f, 0x83, 0xf3,
-	0x47, 0x65, 0x9d, 0x51, 0xab, 0xc6, 0x29, 0xd2, 0x0b, 0x34, 0x3b, 0x55, 0x21, 0xbf, 0x82, 0xe1,
-	0x13, 0xba, 0xf0, 0x2f, 0x27, 0xc5, 0x69, 0xcd, 0xb4, 0x5f, 0xf8, 0xad, 0xe8, 0xf1, 0x6b, 0x18,
-	0xfb, 0x6e, 0xb5, 0x21, 0xad, 0xbe, 0x91, 0x8f, 0x8b, 0x63, 0xd3, 0x74, 0x50, 0x84, 0x32, 0xa2,
-	0x77, 0xc3, 0x78, 0x06, 0x43, 0x89, 0x15, 0xaa, 0x1d, 0xf2, 0x76, 0x9d, 0x8e, 0x8b, 0xa3, 0x82,
-	0xe8, 0xad, 0x06, 0xe1, 0xf1, 0xee, 0x7e, 0x03, 0x00, 0x00, 0xff, 0xff, 0xbd, 0xe6, 0x64, 0xfd,
-	0xca, 0x01, 0x00, 0x00,
-=======
-	// 132 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0xcb, 0x4f, 0x49,
-	0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x01, 0xb1, 0x95, 0xd4, 0xb9, 0xb8, 0xfd, 0xf2,
-	0x53, 0x52, 0x83, 0x52, 0x0b, 0x4b, 0x53, 0x8b, 0x4b, 0x84, 0x24, 0xb8, 0xd8, 0x73, 0x53, 0x8b,
-	0x8b, 0x13, 0xd3, 0x53, 0x25, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0x60, 0x5c, 0x25, 0x0d, 0x2e,
-	0x1e, 0x88, 0xc2, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0xdc, 0x2a, 0x8d, 0xdc, 0x21, 0x46, 0x06,
-	0xa7, 0x16, 0x95, 0x65, 0x26, 0xa7, 0x0a, 0x59, 0x70, 0xf1, 0x07, 0xa7, 0xe6, 0xa5, 0x80, 0x84,
-	0x7c, 0x21, 0x2a, 0x84, 0x04, 0xf5, 0xc0, 0xee, 0x40, 0xb2, 0x58, 0x4a, 0x08, 0x59, 0x08, 0x62,
-	0x45, 0x12, 0x1b, 0xd8, 0xa1, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x34, 0x62, 0x68, 0x9e,
-	0xb6, 0x00, 0x00, 0x00,
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
+        // 308 bytes of a gzipped FileDescriptorProto
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x91, 0x4f, 0x4b, 0xf3, 0x40,
+        0x10, 0xc6, 0xbb, 0xef, 0x9b, 0xfe, 0x71, 0x9a, 0x5e, 0x56, 0x91, 0x90, 0x53, 0xdc, 0x83, 0xe4,
+        0x14, 0x44, 0xbf, 0x81, 0x0a, 0x56, 0x28, 0x52, 0xb6, 0xd0, 0x7b, 0x9a, 0x8e, 0xcd, 0x6a, 0xdd,
+        0x91, 0xdd, 0x4d, 0x41, 0x8f, 0x7e, 0x72, 0xd9, 0x6d, 0xd2, 0x16, 0x6f, 0xf3, 0x1b, 0xc2, 0x33,
+        0xbf, 0x27, 0x0b, 0xa0, 0x69, 0x8d, 0xc5, 0xa7, 0x21, 0x47, 0xe2, 0x0d, 0xa2, 0x67, 0xfd, 0x4a,
+        0x3c, 0x81, 0xe1, 0x12, 0x8d, 0x55, 0xa4, 0x13, 0x96, 0xb1, 0xfc, 0x4c, 0x76, 0xc8, 0x2f, 0xa0,
+        0xbf, 0x2c, 0xb7, 0x6a, 0x9d, 0xfc, 0xcb, 0x58, 0x3e, 0x92, 0x7b, 0xe0, 0x97, 0x30, 0x98, 0xa1,
+        0xde, 0xb8, 0x3a, 0xf9, 0x9f, 0xb1, 0x3c, 0x92, 0x2d, 0xf1, 0x14, 0x46, 0xb3, 0xd2, 0xba, 0x69,
+        0x69, 0xeb, 0x24, 0xca, 0x58, 0x1e, 0xcb, 0x03, 0x0b, 0x01, 0xf1, 0xc2, 0x95, 0xae, 0xb1, 0xf3,
+        0xd2, 0x94, 0x1f, 0x96, 0x73, 0x88, 0xa6, 0x64, 0x5d, 0x7b, 0x30, 0xcc, 0x22, 0x07, 0x58, 0x7c,
+        0xe9, 0xaa, 0xfd, 0xe2, 0x34, 0x8d, 0xfd, 0x49, 0xdb, 0x40, 0xff, 0x7e, 0x4b, 0xd5, 0xbb, 0x57,
+        0x7f, 0x20, 0xed, 0x50, 0x77, 0x49, 0x1d, 0x7a, 0xf5, 0x17, 0xd2, 0x15, 0x06, 0xf5, 0x89, 0xdc,
+        0x83, 0x0f, 0x9d, 0x1b, 0xdc, 0x29, 0x6a, 0x6c, 0x90, 0x8f, 0xe5, 0x81, 0xbd, 0x92, 0x3f, 0xd0,
+        0xaa, 0x87, 0x59, 0xc4, 0x00, 0xf3, 0xc6, 0xd6, 0x12, 0x5d, 0x63, 0xf4, 0xed, 0x0f, 0x83, 0xf3,
+        0x47, 0x65, 0x9d, 0x51, 0xab, 0xc6, 0x29, 0xd2, 0x0b, 0x34, 0x3b, 0x55, 0x21, 0xbf, 0x82, 0xe1,
+        0x13, 0xba, 0xf0, 0x2f, 0x27, 0xc5, 0x69, 0xcd, 0xb4, 0x5f, 0xf8, 0xad, 0xe8, 0xf1, 0x6b, 0x18,
+        0xfb, 0x6e, 0xb5, 0x21, 0xad, 0xbe, 0x91, 0x8f, 0x8b, 0x63, 0xd3, 0x74, 0x50, 0x84, 0x32, 0xa2,
+        0x77, 0xc3, 0x78, 0x06, 0x43, 0x89, 0x15, 0xaa, 0x1d, 0xf2, 0x76, 0x9d, 0x8e, 0x8b, 0xa3, 0x82,
+        0xe8, 0xad, 0x06, 0xe1, 0xf1, 0xee, 0x7e, 0x03, 0x00, 0x00, 0xff, 0xff, 0xbd, 0xe6, 0x64, 0xfd,
+        0xca, 0x01, 0x00, 0x00,
 }
