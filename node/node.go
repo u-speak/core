@@ -1,11 +1,11 @@
 package node
 
 import (
-<<<<<<< HEAD
+
 	"errors"
-=======
+
 	"encoding/base64"
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
+
 	"strconv"
 	"google.golang.org/grpc"
 	"net"
@@ -90,7 +90,7 @@ func (n *Node) Status() Status {
 	}
 }
 
-<<<<<<< HEAD
+
 
 func (s *Node) GetInfo(ctx context.Context, params *d.StatusParams) (*d.Info, error) {
 	if _, contained := s.remoteConnections[params.Host]; !contained {
@@ -107,9 +107,9 @@ func (s *Node) GetInfo(ctx context.Context, params *d.StatusParams) (*d.Info, er
 
 
 // Run listens for connections to this node
-=======
+
 // Run listens for connections to this nodgit ammende
->>>>>>> a3ecea7a5799f548f417464b5a408a2b3a4cc022
+
 func (n *Node) Run() {
 //	fmt.Println(config.NodeNetwork.Interface)
 //	fmt.Println(config.NodeNetwork.Interface)
