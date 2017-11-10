@@ -19,6 +19,7 @@ import (
 // API is used as a container, allowing the REST API to access the node
 type API struct {
 	ListenInterface string
+	Message         string
 	node            *node.Node
 	certfile        string
 	keyfile         string
@@ -42,7 +43,7 @@ type jsonBlock struct {
 
 // New returns a configured instance of the API server
 func New(c config.Configuration, n *node.Node) *API {
-	a := &API{node: n, keyfile: c.Global.SSLKey, certfile: c.Global.SSLCert}
+	a := &API{node: n, keyfile: c.Global.SSLKey, certfile: c.Global.SSLCert, Message: c.Global.Message}
 	a.ListenInterface = c.Web.API.Interface + ":" + strconv.Itoa(c.Web.API.Port)
 	return a
 }
@@ -52,7 +53,21 @@ func (a *API) Run() error {
 	e := echo.New()
 	e.HideBanner = true
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		Skipper:       middleware.DefaultSkipper,
+		AllowOrigins:  []string{"*"},
+		AllowMethods:  []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		ExposeHeaders: []string{"X-Server-Message"},
+	}))
+
+	serverMessage := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().Header().Set("X-Server-Message", a.Message)
+			return next(c)
+		}
+	}
+
+	e.Use(serverMessage)
 
 	validateChain := func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

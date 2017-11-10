@@ -10,6 +10,7 @@ type Configuration struct {
 	Global struct {
 		SSLCert string
 		SSLKey  string
+		Message string `default:"a nice person"`
 	}
 	Storage struct {
 		ImageDir string `default:"/var/lib/uspeak/data/images"`
