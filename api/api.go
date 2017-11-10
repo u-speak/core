@@ -149,7 +149,6 @@ func (a *API) addBlock(c echo.Context) error {
 	}
 	b.PrevHash = prevhash
 	if b.Hash() != hash {
-		log.Debugf("+%v", b)
 		h := b.Hash()
 		log.Debugf("Should: %s, Was: %s", base64.URLEncoding.EncodeToString(h[:]), base64.URLEncoding.EncodeToString(hash[:]))
 		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Block hash did not match its contents"})

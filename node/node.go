@@ -21,6 +21,7 @@ type Node struct {
 	ImageChain        *chain.Chain
 	KeyChain          *chain.Chain
 	ListenInterface   string
+	Version           string
 	remoteConnections map[string]*grpc.ClientConn
 }
 
@@ -64,10 +65,12 @@ func New(c config.Configuration) (*Node, error) {
 		return nil, err
 	}
 	return &Node{
-		ListenInterface: c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
-		ImageChain:      ic,
-		KeyChain:        kc,
-		PostChain:       pc,
+		ListenInterface:   c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
+		ImageChain:        ic,
+		KeyChain:          kc,
+		PostChain:         pc,
+		Version:           c.Version,
+		remoteConnections: make(map[string]*grpc.ClientConn),
 	}, nil
 }
 
@@ -85,6 +88,7 @@ func (n *Node) Status() Status {
 			Image: ChainStatus{Length: n.ImageChain.Length(), Valid: n.ImageChain.Valid(), LastHash: encHash(n.ImageChain.LastHash())},
 			Key:   ChainStatus{Length: n.KeyChain.Length(), Valid: n.KeyChain.Valid(), LastHash: encHash(n.KeyChain.LastHash())},
 		},
+		Version: n.Version,
 	}
 }
 
@@ -103,8 +107,11 @@ func (n *Node) GetInfo(ctx context.Context, params *d.StatusParams) (*d.Info, er
 
 // Run listens for connections to this node
 func (n *Node) Run() {
-	log.Infof("Starting Nodeserver on 127.0.0.1:6969")
-	lis, _ := net.Listen("tcp", "127.0.0.1:6969")
+	log.Infof("Starting Nodeserver on %s", n.ListenInterface)
+	lis, err := net.Listen("tcp", n.ListenInterface)
+	if err != nil {
+		log.Error("Could not listen on %s: %s", n.ListenInterface, err)
+	}
 	grpcServer := grpc.NewServer()
 	d.RegisterDistributionServiceServer(grpcServer, n)
 	log.Fatal(grpcServer.Serve(lis))

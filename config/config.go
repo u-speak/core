@@ -2,7 +2,8 @@ package config
 
 // Configuration is the exportable type of the node configuration
 type Configuration struct {
-	Logger struct {
+	Version string
+	Logger  struct {
 		Format string `default:"default"`
 		Debug  bool   `default:"false"`
 	}
