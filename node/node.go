@@ -153,7 +153,7 @@ func (n *Node) Push(b *chain.Block) {
 	}
 	for _, r := range n.remoteConnections {
 		client := d.NewDistributionServiceClient(r)
-		_, err := client.Receive(context.Background(), pb)
+		_, err := client.AddBlock(context.Background(), pb)
 		if err != nil {
 			log.Error(err)
 		}
@@ -161,7 +161,7 @@ func (n *Node) Push(b *chain.Block) {
 }
 
 // Receive receives a sent Block from other node, also just PostChain Blocks at the moment
-func (n *Node) Receive(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
+func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
 	log.Debugf("Received Block: %s", block.Content)
 	var p [32]byte
 	copy(p[:], block.Previous)
@@ -196,10 +196,12 @@ func (n *Node) Receive(ctx context.Context, block *d.Block) (*d.PushReturn, erro
 func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_SynchronizeServer) error {
 	h := n.PostChain.LastHash()
 	b := n.PostChain.Get(h)
+
+
 	var c [32]byte
 	copy(c[:], p.LastHash)
 	for {
-		if err := stream.Send(&d.Block{Content: b.Content, Nonce: uint32(b.Nonce), Previous: b.PrevHash[:]}); err != nil {
+		if err := stream.Send(&d.Block{Content: b.Content, Type: b.Type, PubKey: b.PubKey, Date: uint32(b.Date.Unix()), Signature: b.Signature, Previous:  b.PrevHash[:]}); err != nil {
 			log.Error(err)
 		}
 		if b.PrevHash == c {

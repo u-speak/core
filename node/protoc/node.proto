@@ -31,5 +31,5 @@ message PushReturn {
 service DistributionService {
   rpc GetInfo(StatusParams) returns (Info) {}
   rpc Synchronize(SyncParams) returns (stream Block) {}
-  rpc Receive(Block) returns (PushReturn) {}
+  rpc AddBlock(Block) returns (PushReturn) {}
 }
