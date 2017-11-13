@@ -15,7 +15,7 @@ type Configuration struct {
 	Storage struct {
 		ImageDir string `default:"/var/lib/uspeak/data/images"`
 		KeyDir   string `default:"/var/lib/uspeak/data/keys"`
-		PostDir  string `default:"/var/lib/uspeak/data/posts"`
+		PostDir  string `default:"/var/lib/uspeak/data/posts" env:"POST_DIR"`
 	}
 	NodeNetwork struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`

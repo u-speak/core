@@ -1,9 +1,9 @@
 package node
 
 import (
-	"errors"
-
 	"encoding/base64"
+	"errors"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/chain"
@@ -88,7 +88,8 @@ func (n *Node) Status() Status {
 			Image: ChainStatus{Length: n.ImageChain.Length(), Valid: n.ImageChain.Valid(), LastHash: encHash(n.ImageChain.LastHash())},
 			Key:   ChainStatus{Length: n.KeyChain.Length(), Valid: n.KeyChain.Valid(), LastHash: encHash(n.KeyChain.LastHash())},
 		},
-		Version: n.Version,
+		Connections: len(n.remoteConnections),
+		Version:     n.Version,
 	}
 }
 
@@ -115,8 +116,6 @@ func (n *Node) Run() {
 	grpcServer := grpc.NewServer()
 	d.RegisterDistributionServiceServer(grpcServer, n)
 	log.Fatal(grpcServer.Serve(lis))
-
-	log.Infof("Started Nodeserver.")
 }
 
 // Connect connects to a new remote
@@ -137,15 +136,24 @@ func (n *Node) Connect(remote string) error {
 func (n *Node) SubmitBlock(b chain.Block) {
 	log.Debug(n.PostChain)
 	log.Infof("Pushing block %x to network", b.Hash())
-	n.PostChain.Add(b)
+	n.Push(&b)
 }
 
 // Push sends a block to all connected nodes
 func (n *Node) Push(b *chain.Block) {
-	lh := n.PostChain.LastHash()
+	h := b.PrevHash
+	pb := &d.Block{
+		Content:   b.Content,
+		Nonce:     uint32(b.Nonce),
+		Previous:  h[:],
+		Signature: b.Signature,
+		Date:      uint32(b.Date.Unix()),
+		Type:      b.Type,
+		PubKey:    b.PubKey,
+	}
 	for _, r := range n.remoteConnections {
 		client := d.NewDistributionServiceClient(r)
-		_, err := client.Receive(context.Background(), &d.Block{Content: b.Content, Nonce: uint32(b.Nonce), Previous: lh[:]})
+		_, err := client.Receive(context.Background(), pb)
 		if err != nil {
 			log.Error(err)
 		}
@@ -161,6 +169,27 @@ func (n *Node) Receive(ctx context.Context, block *d.Block) (*d.PushReturn, erro
 		log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 		return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 	}
+	var h [32]byte
+	copy(h[:], block.Previous)
+	b := chain.Block{
+		Content:   block.Content,
+		Type:      block.Type,
+		PubKey:    block.PubKey,
+		Date:      time.Unix(int64(block.Date), 0),
+		Signature: block.Signature,
+		PrevHash:  h,
+		Nonce:     uint(block.Nonce),
+	}
+	var c *chain.Chain
+	switch b.Type {
+	case "post":
+		c = n.PostChain
+	case "image":
+		c = n.ImageChain
+	case "key":
+		c = n.KeyChain
+	}
+	c.Add(b)
 	return &d.PushReturn{}, nil
 }
 
@@ -169,9 +198,8 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	b := n.PostChain.Get(h)
 	var c [32]byte
 	copy(c[:], p.LastHash)
-	last := n.PostChain.LastHash()
 	for {
-		if err := stream.Send(&d.Block{Content: b.Content, Nonce: uint32(b.Nonce), Previous: b.PrevHash[:], Last: last[:]}); err != nil {
+		if err := stream.Send(&d.Block{Content: b.Content, Nonce: uint32(b.Nonce), Previous: b.PrevHash[:]}); err != nil {
 			log.Error(err)
 		}
 		if b.PrevHash == c {

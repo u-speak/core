@@ -1,31 +1,35 @@
 syntax = "proto3";
-  
-  message Info {
-    string Version = 1;
-    bool Valid = 2;
-    uint64 Length = 3;
-    bytes LastHash = 4; 
-  }
-  
-  message StatusParams{
-    string Host = 1;
-  }
-  
-  message SyncParams{
-    bytes LastHash = 1;
-  }
-  
-  message Block {
-    string Content = 1;
-    uint32 Nonce = 2;
-    bytes Previous = 3;
-    bytes Last = 4;
- 
-  message PushReturn {
-  }
- 
-  service DistributionService {
-    rpc GetInfo(StatusParams) returns (Info) {}
-    rpc Synchronize(SyncParams) returns (stream Block) {}
-    rpc Receive(Block) returns (PushReturn) {}
+
+message Info {
+  string Version = 1;
+  bool Valid = 2;
+  uint64 Length = 3;
+  bytes LastHash = 4; 
+}
+
+message StatusParams{
+  string Host = 1;
+}
+
+message SyncParams{
+  bytes LastHash = 1;
+}
+
+message Block {
+  string Content = 1;
+  uint32 Nonce = 2;
+  bytes Previous = 3;
+  string Type = 5;
+  string PubKey = 6;
+  uint32 Date = 7;
+  string Signature = 8;
+}
+
+message PushReturn {
+}
+
+service DistributionService {
+  rpc GetInfo(StatusParams) returns (Info) {}
+  rpc Synchronize(SyncParams) returns (stream Block) {}
+  rpc Receive(Block) returns (PushReturn) {}
 }
