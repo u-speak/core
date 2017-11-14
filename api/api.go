@@ -23,6 +23,9 @@ type API struct {
 	node            *node.Node
 	certfile        string
 	keyfile         string
+	adminEnabled    bool
+	user            string
+	password        string
 }
 
 type Error struct {
@@ -43,7 +46,15 @@ type jsonBlock struct {
 
 // New returns a configured instance of the API server
 func New(c config.Configuration, n *node.Node) *API {
-	a := &API{node: n, keyfile: c.Global.SSLKey, certfile: c.Global.SSLCert, Message: c.Global.Message}
+	a := &API{
+		node:         n,
+		keyfile:      c.Global.SSLKey,
+		certfile:     c.Global.SSLCert,
+		Message:      c.Global.Message,
+		adminEnabled: c.Web.API.AdminEnabled,
+		user:         c.Web.API.AdminUser,
+		password:     c.Web.API.AdminPassword,
+	}
 	a.ListenInterface = c.Web.API.Interface + ":" + strconv.Itoa(c.Web.API.Port)
 	return a
 }
@@ -93,6 +104,17 @@ func (a *API) Run() error {
 	apiV1.POST("/chains/:type", a.addBlock, validateChain)
 	apiV1.GET("/chains/:type", a.getBlocks, validateChain)
 	apiV1.GET("/search", a.getSearch)
+	if a.adminEnabled {
+		admin := apiV1.Group("/admin", middleware.BasicAuth(func(u, p string, c echo.Context) (bool, error) {
+			if u == a.user && p == a.password {
+				return true, nil
+			}
+			return false, nil
+		}))
+		admin.GET("/nodes", a.getNodes)
+		admin.POST("/nodes", a.addNode)
+		//admin.GET("/sync/:node", a.syncNode)
+	}
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)
 }
@@ -222,6 +244,33 @@ func (a *API) getBlocks(c echo.Context) error {
 		Results []jsonBlock `json:"results"`
 	}{Results: results})
 }
+
+func (a *API) getNodes(c echo.Context) error {
+	return c.JSON(http.StatusOK, a.node.Status().Connections)
+}
+
+func (a *API) addNode(c echo.Context) error {
+	params := &struct {
+		Node string `json:"node"`
+	}{}
+	if err := c.Bind(params); err != nil {
+		log.Error(err)
+		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Bad request parameter"})
+	}
+	err := a.node.Connect(params.Node)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{
+			Code:    http.StatusInternalServerError,
+			Message: "Could not connect to remote: " + err.Error(),
+		})
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+// func (a *API) syncNode(c echo.Context) error {
+// 	//TODO: implement
+// 	return nil
+// }
 
 func jsonize(b *chain.Block) jsonBlock {
 	h := b.Hash()

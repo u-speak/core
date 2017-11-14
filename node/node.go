@@ -42,7 +42,7 @@ type Status struct {
 	Address     string          `json:"address"`
 	Version     string          `json:"version"`
 	Length      uint64          `json:"length"`
-	Connections int             `json:"connections"`
+	Connections []string        `json:"connections"`
 	Chains      ChainStatusList `json:"chains"`
 }
 
@@ -80,6 +80,10 @@ func encHash(h [32]byte) string {
 
 // Status returns the current running configuration of the node
 func (n *Node) Status() Status {
+	cons := []string{}
+	for k := range n.remoteConnections {
+		cons = append(cons, k)
+	}
 	return Status{
 		Address: n.ListenInterface,
 		Length:  n.PostChain.Length() + n.KeyChain.Length() + n.ImageChain.Length(),
@@ -88,7 +92,7 @@ func (n *Node) Status() Status {
 			Image: ChainStatus{Length: n.ImageChain.Length(), Valid: n.ImageChain.Valid(), LastHash: encHash(n.ImageChain.LastHash())},
 			Key:   ChainStatus{Length: n.KeyChain.Length(), Valid: n.KeyChain.Valid(), LastHash: encHash(n.KeyChain.LastHash())},
 		},
-		Connections: len(n.remoteConnections),
+		Connections: cons,
 		Version:     n.Version,
 	}
 }
@@ -197,11 +201,10 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	h := n.PostChain.LastHash()
 	b := n.PostChain.Get(h)
 
-
 	var c [32]byte
 	copy(c[:], p.LastHash)
 	for {
-		if err := stream.Send(&d.Block{Content: b.Content, Type: b.Type, PubKey: b.PubKey, Date: uint32(b.Date.Unix()), Signature: b.Signature, Previous:  b.PrevHash[:]}); err != nil {
+		if err := stream.Send(&d.Block{Content: b.Content, Type: b.Type, PubKey: b.PubKey, Date: uint32(b.Date.Unix()), Signature: b.Signature, Previous: b.PrevHash[:]}); err != nil {
 			log.Error(err)
 		}
 		if b.PrevHash == c {
