@@ -164,7 +164,7 @@ func (n *Node) Push(b *chain.Block) {
 	}
 }
 
-// Receive receives a sent Block from other node, also just PostChain Blocks at the moment
+// AddBlock receives a sent Block from other node
 func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
 	log.Debugf("Received Block: %s", block.Content)
 	var p [32]byte
