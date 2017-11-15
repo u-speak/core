@@ -6,6 +6,8 @@ type BlockStore interface {
 	Get([32]byte) *Block
 	Add(Block) error
 	Length() uint64
-	Keys() [][32]byte
+	//Keys() [][32]byte
 	Valid(func([32]byte) bool) bool
+	Initialized() bool
+	Close()
 }

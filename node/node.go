@@ -52,15 +52,15 @@ func validateAll([32]byte) bool {
 
 // New constructs a new node from the configuration
 func New(c config.Configuration) (*Node, error) {
-	ic, err := chain.New(&chain.DiskStore{Folder: c.Storage.ImageDir}, validateAll)
+	ic, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.ImagePath}, validateAll)
 	if err != nil {
 		return nil, err
 	}
-	kc, err := chain.New(&chain.DiskStore{Folder: c.Storage.KeyDir}, validateAll)
+	kc, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.KeyPath}, validateAll)
 	if err != nil {
 		return nil, err
 	}
-	pc, err := chain.New(&chain.DiskStore{Folder: c.Storage.PostDir}, validateAll)
+	pc, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.PostPath}, validateAll)
 	if err != nil {
 		return nil, err
 	}

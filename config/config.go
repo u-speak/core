@@ -13,9 +13,16 @@ type Configuration struct {
 		Message string `default:"a nice person"`
 	}
 	Storage struct {
-		ImageDir string `default:"/var/lib/uspeak/data/images"`
-		KeyDir   string `default:"/var/lib/uspeak/data/keys"`
-		PostDir  string `default:"/var/lib/uspeak/data/posts" env:"POST_DIR"`
+		DiskStore struct {
+			ImageDir string `default:"/var/lib/uspeak/data/images" env:"IMAGE_PATH"`
+			KeyDir   string `default:"/var/lib/uspeak/data/keys" env:"KEY_PATH"`
+			PostDir  string `default:"/var/lib/uspeak/data/posts" env:"POST_PATH"`
+		}
+		BoltStore struct {
+			ImagePath string `default:"/var/lib/uspeak/data/images.db" env:"IMAGE_PATH"`
+			KeyPath   string `default:"/var/lib/uspeak/data/keys.db" env:"KEY_PATH"`
+			PostPath  string `default:"/var/lib/uspeak/data/keys.db" env:"POST_PATH"`
+		}
 	}
 	NodeNetwork struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`

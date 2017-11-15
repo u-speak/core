@@ -10,7 +10,12 @@ import (
 // ValidationFunc is the requirement for mining
 type ValidationFunc func([32]byte) bool
 
-var ErrInvalidChain = errors.New("Chain Validation Failed")
+var (
+	// ErrInvalidChain gets returned when the chain validation fails
+	ErrInvalidChain = errors.New("Chain Validation Failed")
+	// ErrStoreInitialized gets returned when a store is tried to be initialized twice
+	ErrStoreInitialized = errors.New("Store already initialized")
+)
 
 // Chain is a Blockchain Implementation
 type Chain struct {
@@ -46,7 +51,10 @@ func (c *Chain) Add(b Block) ([32]byte, error) {
 	if b.PrevHash != c.lastHash {
 		return [32]byte{}, errors.New("Blocks PrevHash was not the lasthash")
 	}
-	c.blocks.Add(b)
+	err := c.blocks.Add(b)
+	if err != nil {
+		return [32]byte{}, err
+	}
 	c.lastHash = hash
 	return hash, nil
 }

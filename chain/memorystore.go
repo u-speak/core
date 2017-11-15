@@ -1,9 +1,38 @@
 package chain
 
+import (
+	"errors"
+)
+
 // MemoryStore is a basic implementation for the physical saving of concrete blocks.
 // This POC saves them only in memory
 type MemoryStore struct {
-	raw []*Block
+	raw         []*Block
+	initialized bool
+}
+
+// Init initializes the raw storage
+func (b *MemoryStore) Init() ([32]byte, error) {
+	if len(b.raw) == 0 {
+		bl := genesisBlock()
+		b.raw = append(b.raw, &bl)
+	}
+	preds := make(map[[32]byte]bool)
+	for _, b := range b.raw {
+		preds[b.PrevHash] = true
+	}
+	for _, b := range b.raw {
+		if preds[b.Hash()] == false {
+			return b.Hash(), nil
+		}
+	}
+	b.initialized = true
+	return [32]byte{}, errors.New("Could not find lasthash")
+}
+
+// Initialized returns whether or not this store has been initialized
+func (b *MemoryStore) Initialized() bool {
+	return b.initialized
 }
 
 // Get retrieves a block by its hash
@@ -27,15 +56,6 @@ func (b *MemoryStore) Length() uint64 {
 	return uint64(len(b.raw))
 }
 
-// Keys returns a list of hashes of all existing blocks
-func (b *MemoryStore) Keys() [][32]byte {
-	hkeys := [][32]byte{}
-	for _, v := range b.raw {
-		hkeys = append(hkeys, v.Hash())
-	}
-	return hkeys
-}
-
 func (b *MemoryStore) bloomFilter() map[[32]byte]bool {
 	f := make(map[[32]byte]bool)
 	for _, v := range b.raw {
@@ -55,4 +75,8 @@ func (b *MemoryStore) Valid(v func([32]byte) bool) bool {
 		}
 	}
 	return true
+}
+
+// Close closes the underlying connections
+func (b *MemoryStore) Close() {
 }

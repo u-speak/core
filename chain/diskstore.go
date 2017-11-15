@@ -13,7 +13,8 @@ import (
 
 // DiskStore is a Blockstore implementation saving the blocks serialized to a Folder
 type DiskStore struct {
-	Folder string
+	Folder      string
+	initialized bool
 }
 
 // Init initializes the Diskstore
@@ -41,7 +42,13 @@ func (b *DiskStore) Init() ([32]byte, error) {
 			return bl.Hash(), nil
 		}
 	}
+	b.initialized = true
 	return [32]byte{}, errors.New("Could not calculate lasthash")
+}
+
+// Initialized returns whether or not this store has been initialized
+func (b *DiskStore) Initialized() bool {
+	return b.initialized
 }
 
 // Get retrieves a block by its hash
@@ -89,30 +96,6 @@ func (b *DiskStore) Length() uint64 {
 	return uint64(len(b.all()))
 }
 
-// Keys returns a list of hashes of all existing blocks
-func (b *DiskStore) Keys() [][32]byte {
-	hkeys := [][32]byte{}
-	files, err := ioutil.ReadDir(b.Folder)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	for _, f := range files {
-		stat := [32]byte{}
-		h, err := base64.URLEncoding.DecodeString(f.Name())
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
-		copy(stat[:], h)
-		bl := b.Get(stat)
-		if bl != nil {
-			hkeys = append(hkeys, stat)
-		}
-	}
-	return hkeys
-}
-
 func (b *DiskStore) all() []*Block {
 	all := []*Block{}
 	files, err := ioutil.ReadDir(b.Folder)
@@ -154,4 +137,8 @@ func (b *DiskStore) Valid(v func([32]byte) bool) bool {
 		}
 	}
 	return true
+}
+
+// Close closes the underlying connections
+func (b *DiskStore) Close() {
 }
