@@ -19,9 +19,9 @@ type Configuration struct {
 			PostDir  string `default:"/var/lib/uspeak/data/posts" env:"POST_PATH"`
 		}
 		BoltStore struct {
-			ImagePath string `default:"/var/lib/uspeak/data/images.db" env:"IMAGE_PATH"`
-			KeyPath   string `default:"/var/lib/uspeak/data/keys.db" env:"KEY_PATH"`
-			PostPath  string `default:"/var/lib/uspeak/data/keys.db" env:"POST_PATH"`
+			ImagePath string `default:"/var/lib/uspeak/data/image.db" env:"IMAGE_PATH"`
+			KeyPath   string `default:"/var/lib/uspeak/data/key.db" env:"KEY_PATH"`
+			PostPath  string `default:"/var/lib/uspeak/data/post.db" env:"POST_PATH"`
 		}
 	}
 	NodeNetwork struct {
