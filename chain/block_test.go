@@ -17,13 +17,13 @@ func TestHash(t *testing.T) {
 
 	db := b
 	db.Date = time.Now()
-	if db.Hash() == baseHash {
+	if db.Hash() != baseHash {
 		t.Error("Hash did not change while modifying Date")
 	}
 
 	nb := b
 	nb.Nonce = 42
-	if db.Hash() == baseHash {
+	if db.Hash() != baseHash {
 		t.Error("Hash did not change while modifying Nonce")
 	}
 
