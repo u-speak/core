@@ -206,10 +206,8 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	b := n.PostChain.Get(h)
 
 	c := [32]byte{}
-	log.Info(base64.URLEncoding.EncodeToString(c[:]))
 	var blst list.List
 	for {
-		log.Infof("test %+v", b)
 		blst.PushBack(b.Content)
 		if b.PrevHash == c {
 			break
@@ -218,24 +216,21 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	}
 	blk := []*chain.Block{}
 	blk, _ = n.PostChain.DumpChain()
-	log.Infof("Output from Dump: %+v", blk)
 
 	for i := len(blk) - 2; i >= 0; i-- {
-		log.Infof("Block: %+v", blk[i])
-		log.Errorf("received: %+v", blk[i])
 		if err := stream.Send(&d.Block{Content: blk[i].Content, Nonce: uint32(blk[i].Nonce), Previous: blk[i].PrevHash[:], Type: blk[i].Type, PubKey: blk[i].PubKey, Date: uint32(b.Date.Unix()), Signature: blk[i].Signature}); err != nil {
 			log.Error(err)
 		}
 
 	}
-
+	log.Infof("Synchronization finished successfully.")
 	return nil
 }
 
 //Synchronize Chain receives all the Blocks sent from an other node
 func (n *Node) SynchronizeChain(remote string) error {
 	lh := n.PostChain.LastHash()
-	log.Debugf("Synchronisation started. Receiving Blocks from other node.")
+	log.Infof("Synchronization started. Receiving Blocks from other node.")
 	params := &d.SyncParams{LastHash: lh[:]}
 	client := d.NewDistributionServiceClient(n.remoteConnections[remote])
 	stream, err := client.Synchronize(context.Background(), params)
@@ -262,14 +257,12 @@ func (n *Node) SynchronizeChain(remote string) error {
 			PrevHash:  p,
 			Nonce:     uint(block.Nonce),
 		}
-		log.Infof("Adding block received. %+v", b)
-		var t [32]byte
-		t, err = n.PostChain.Add(b)
-		log.Infof("%+v", t)
-		log.Infof("error %+v", err)
+		log.Infof("Received a Block: %v", b.Content)
+		_, err = n.PostChain.Add(b)
 		if err != nil {
 			return err
 		}
 	}
+	log.Infof("Synchronization finished successfully.")
 	return nil
 }
