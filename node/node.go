@@ -142,7 +142,6 @@ func (n *Node) SubmitBlock(b chain.Block) {
 	log.Debug(n.PostChain)
 	log.Infof("Pushing block %x to network", b.Hash())
 	n.Push(&b)
-	log.Infof("Infos zu Block: %+v", &b)
 }
 
 // Push sends a block to all connected nodes
@@ -218,7 +217,13 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	blk, _ = n.PostChain.DumpChain()
 
 	for i := len(blk) - 2; i >= 0; i-- {
-		if err := stream.Send(&d.Block{Content: blk[i].Content, Nonce: uint32(blk[i].Nonce), Previous: blk[i].PrevHash[:], Type: blk[i].Type, PubKey: blk[i].PubKey, Date: uint32(b.Date.Unix()), Signature: blk[i].Signature}); err != nil {
+		if err := stream.Send(&d.Block{Content: blk[i].Content,
+					 Nonce: uint32(blk[i].Nonce),
+					 Previous: blk[i].PrevHash[:],
+					 Type: blk[i].Type,
+					 PubKey: blk[i].PubKey,
+					 Date: uint32(blk[i].Date.Unix()),
+					 Signature: blk[i].Signature}); err != nil {
 			log.Error(err)
 		}
 
@@ -257,7 +262,7 @@ func (n *Node) SynchronizeChain(remote string) error {
 			PrevHash:  p,
 			Nonce:     uint(block.Nonce),
 		}
-		log.Infof("Received a Block: %v", b.Content)
+		log.Infof("Got a new Block: %v", b.Content)
 		_, err = n.PostChain.Add(b)
 		if err != nil {
 			return err
