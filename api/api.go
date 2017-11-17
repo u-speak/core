@@ -34,7 +34,7 @@ type Error struct {
 }
 
 type jsonBlock struct {
-	Nonce     uint   `json:"nonce"`
+	Nonce     uint32 `json:"nonce"`
 	PrevHash  string `json:"previous_hash"`
 	Hash      string `json:"hash"`
 	Content   string `json:"content"`

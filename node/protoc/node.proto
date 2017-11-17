@@ -21,7 +21,7 @@ message Block {
   bytes Previous = 3;
   string Type = 5;
   string PubKey = 6;
-  uint32 Date = 7;
+  int64 Date = 7;
   string Signature = 8;
 }
 

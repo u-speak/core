@@ -149,10 +149,10 @@ func (n *Node) Push(b *chain.Block) {
 	h := b.PrevHash
 	pb := &d.Block{
 		Content:   b.Content,
-		Nonce:     uint32(b.Nonce),
+		Nonce:     b.Nonce,
 		Previous:  h[:],
 		Signature: b.Signature,
-		Date:      uint32(b.Date.Unix()),
+		Date:      b.Date.Unix(),
 		Type:      b.Type,
 		PubKey:    b.PubKey,
 	}
@@ -183,7 +183,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		Date:      time.Unix(int64(block.Date), 0),
 		Signature: block.Signature,
 		PrevHash:  h,
-		Nonce:     uint(block.Nonce),
+		Nonce:     block.Nonce,
 	}
 	var c *chain.Chain
 	switch b.Type {
@@ -217,22 +217,26 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	blk, _ = n.PostChain.DumpChain()
 
 	for i := len(blk) - 2; i >= 0; i-- {
-		if err := stream.Send(&d.Block{Content: blk[i].Content,
-					 Nonce: uint32(blk[i].Nonce),
-					 Previous: blk[i].PrevHash[:],
-					 Type: blk[i].Type,
-					 PubKey: blk[i].PubKey,
-					 Date: uint32(blk[i].Date.Unix()),
-					 Signature: blk[i].Signature}); err != nil {
+		err := stream.Send(&d.Block{
+			Content:   blk[i].Content,
+			Nonce:     blk[i].Nonce,
+			Previous:  blk[i].PrevHash[:],
+			Type:      blk[i].Type,
+			PubKey:    blk[i].PubKey,
+			Date:      blk[i].Date.Unix(),
+			Signature: blk[i].Signature,
+		})
+		if err != nil {
 			log.Error(err)
 		}
+		log.Debugf("Sent %+v", blk[i])
 
 	}
 	log.Infof("Synchronization finished successfully.")
 	return nil
 }
 
-//Synchronize Chain receives all the Blocks sent from an other node
+// SynchronizeChain receives all the Blocks sent from an other node
 func (n *Node) SynchronizeChain(remote string) error {
 	lh := n.PostChain.LastHash()
 	log.Infof("Synchronization started. Receiving Blocks from other node.")
@@ -257,15 +261,17 @@ func (n *Node) SynchronizeChain(remote string) error {
 			Content:   block.Content,
 			Type:      "post",
 			PubKey:    block.PubKey,
-			Date:      time.Unix(int64(block.Date), 0),
+			Date:      time.Unix(block.Date, 0),
 			Signature: block.Signature,
 			PrevHash:  p,
-			Nonce:     uint(block.Nonce),
+			Nonce:     block.Nonce,
 		}
 		log.Infof("Got a new Block: %v", b.Content)
 		_, err = n.PostChain.Add(b)
 		if err != nil {
 			return err
+		} else {
+			log.Debug("added %s", b.Content)
 		}
 	}
 	log.Infof("Synchronization finished successfully.")
