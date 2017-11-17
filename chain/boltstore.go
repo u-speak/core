@@ -2,6 +2,7 @@ package chain
 
 import (
 	"encoding/base64"
+	"os"
 
 	"github.com/coreos/bbolt"
 	log "github.com/sirupsen/logrus"
@@ -218,4 +219,11 @@ func (b *BoltStore) Valid(val func([32]byte) bool) bool {
 func (b *BoltStore) Close() {
 	_ = b.db.Close()
 	b.initialized = false
+}
+
+// Reinitialize resets the chain
+func (b *BoltStore) Reinitialize() ([32]byte, error) {
+	b.Close()
+	_ = os.Remove(b.Path)
+	return b.Init()
 }

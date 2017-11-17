@@ -80,3 +80,9 @@ func (b *MemoryStore) Valid(v func([32]byte) bool) bool {
 // Close closes the underlying connections
 func (b *MemoryStore) Close() {
 }
+
+// Reinitialize resets the chain
+func (b *MemoryStore) Reinitialize() ([32]byte, error) {
+	b.raw = []*Block{}
+	return b.Init()
+}

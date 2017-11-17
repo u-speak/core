@@ -142,3 +142,12 @@ func (b *DiskStore) Valid(v func([32]byte) bool) bool {
 // Close closes the underlying connections
 func (b *DiskStore) Close() {
 }
+
+// Reinitialize resets the chain
+func (b *DiskStore) Reinitialize() ([32]byte, error) {
+	err := os.RemoveAll(b.Folder)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	return b.Init()
+}
