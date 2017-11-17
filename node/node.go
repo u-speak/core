@@ -1,18 +1,19 @@
 package node
 
 import (
+	"container/list"
 	"encoding/base64"
 	"errors"
-	"time"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/chain"
 	"github.com/u-speak/core/config"
 	d "github.com/u-speak/core/node/protoc"
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"io"
 	"net"
 	"strconv"
+	"time"
 )
 
 // Node is a wrapper around the chain. Nodes are the backbone of the network
@@ -141,6 +142,7 @@ func (n *Node) SubmitBlock(b chain.Block) {
 	log.Debug(n.PostChain)
 	log.Infof("Pushing block %x to network", b.Hash())
 	n.Push(&b)
+	log.Infof("Infos zu Block: %+v", &b)
 }
 
 // Push sends a block to all connected nodes
@@ -197,20 +199,77 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 	return &d.PushReturn{}, nil
 }
 
+// Synchronize sends all Blocks to an other node
 func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_SynchronizeServer) error {
+	log.Infof("Synchronization started. Sending all Blocks to another Node.")
 	h := n.PostChain.LastHash()
 	b := n.PostChain.Get(h)
 
-	var c [32]byte
-	copy(c[:], p.LastHash)
+	c := [32]byte{}
+	log.Info(base64.URLEncoding.EncodeToString(c[:]))
+	var blst list.List
 	for {
-		if err := stream.Send(&d.Block{Content: b.Content, Type: b.Type, PubKey: b.PubKey, Date: uint32(b.Date.Unix()), Signature: b.Signature, Previous: b.PrevHash[:]}); err != nil {
-			log.Error(err)
-		}
+		log.Infof("test %+v", b)
+		blst.PushBack(b.Content)
 		if b.PrevHash == c {
 			break
 		}
 		b = n.PostChain.Get(b.PrevHash)
+	}
+	blk := []*chain.Block{}
+	blk, _ = n.PostChain.DumpChain()
+	log.Infof("Output from Dump: %+v", blk)
+
+	for i := len(blk) - 2; i >= 0; i-- {
+		log.Infof("Block: %+v", blk[i])
+		log.Errorf("received: %+v", blk[i])
+		if err := stream.Send(&d.Block{Content: blk[i].Content, Nonce: uint32(blk[i].Nonce), Previous: blk[i].PrevHash[:], Type: blk[i].Type, PubKey: blk[i].PubKey, Date: uint32(b.Date.Unix()), Signature: blk[i].Signature}); err != nil {
+			log.Error(err)
+		}
+
+	}
+
+	return nil
+}
+
+//Synchronize Chain receives all the Blocks sent from an other node
+func (n *Node) SynchronizeChain(remote string) error {
+	lh := n.PostChain.LastHash()
+	log.Debugf("Synchronisation started. Receiving Blocks from other node.")
+	params := &d.SyncParams{LastHash: lh[:]}
+	client := d.NewDistributionServiceClient(n.remoteConnections[remote])
+	stream, err := client.Synchronize(context.Background(), params)
+	if err != nil {
+		return err
+	}
+	for {
+		block, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		var p [32]byte
+		copy(p[:], block.Previous)
+
+		b := chain.Block{
+			Content:   block.Content,
+			Type:      "post",
+			PubKey:    block.PubKey,
+			Date:      time.Unix(int64(block.Date), 0),
+			Signature: block.Signature,
+			PrevHash:  p,
+			Nonce:     uint(block.Nonce),
+		}
+		log.Infof("Adding block received. %+v", b)
+		var t [32]byte
+		t, err = n.PostChain.Add(b)
+		log.Infof("%+v", t)
+		log.Infof("error %+v", err)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
