@@ -229,8 +229,6 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 		if err != nil {
 			log.Error(err)
 		}
-		log.Debugf("Sent %+v", blk[i])
-
 	}
 	log.Infof("Synchronization finished successfully.")
 	return nil
@@ -267,11 +265,10 @@ func (n *Node) SynchronizeChain(remote string) error {
 			Nonce:     block.Nonce,
 		}
 		log.Infof("Got a new Block: %v", b.Content)
+		log.Debugf("Received %+v", b)
 		_, err = n.PostChain.Add(b)
 		if err != nil {
 			return err
-		} else {
-			log.Debug("added %s", b.Content)
 		}
 	}
 	log.Infof("Synchronization finished successfully.")
