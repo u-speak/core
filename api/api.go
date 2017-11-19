@@ -14,6 +14,7 @@ import (
 	"github.com/u-speak/core/chain"
 	"github.com/u-speak/core/config"
 	"github.com/u-speak/core/node"
+	"github.com/u-speak/core/util"
 )
 
 // API is used as a container, allowing the REST API to access the node
@@ -34,14 +35,15 @@ type Error struct {
 }
 
 type jsonBlock struct {
-	Nonce     uint32 `json:"nonce"`
-	PrevHash  string `json:"previous_hash"`
-	Hash      string `json:"hash"`
-	Content   string `json:"content"`
-	Signature string `json:"signature"`
-	Type      string `json:"type"`
-	PubKey    string `json:"public_key"`
-	Date      int64  `json:"date"`
+	Nonce        uint32 `json:"nonce"`
+	PrevHash     string `json:"previous_hash"`
+	Hash         string `json:"hash"`
+	Content      string `json:"content"`
+	Signature    string `json:"signature"`
+	Type         string `json:"type"`
+	PubKey       string `json:"public_key"`
+	Date         int64  `json:"date"`
+	BubbleBabble string `json:"bubblebabble"`
 }
 
 // New returns a configured instance of the API server
@@ -124,12 +126,10 @@ func (a *API) getStatus(c echo.Context) error {
 }
 
 func (a *API) getBlock(c echo.Context) error {
-	rh, err := base64.URLEncoding.DecodeString(c.Param("hash"))
+	h, err := decodeHash(c.Param("hash"))
 	if err != nil {
 		return err
 	}
-	var h [32]byte
-	copy(h[:], rh)
 	var b *chain.Block
 	switch c.Param("type") {
 	case "post":
@@ -151,7 +151,11 @@ func (a *API) getBlock(c echo.Context) error {
 func decodeHash(s string) ([32]byte, error) {
 	h := [32]byte{}
 	var hs []byte
-	hs, err := base64.URLEncoding.DecodeString(s)
+	h, err := util.DecodeBubbleBabble(s)
+	if err == nil {
+		return h, nil
+	}
+	hs, err = base64.URLEncoding.DecodeString(s)
 	if err == nil {
 		copy(h[:], hs)
 		return h, nil
@@ -276,13 +280,14 @@ func jsonize(b *chain.Block) jsonBlock {
 	h := b.Hash()
 	p := b.PrevHash
 	return jsonBlock{
-		Hash:      base64.URLEncoding.EncodeToString(h[:]),
-		Nonce:     b.Nonce,
-		PrevHash:  base64.URLEncoding.EncodeToString(p[:]),
-		Content:   b.Content,
-		Signature: b.Signature,
-		Type:      b.Type,
-		PubKey:    b.PubKey,
-		Date:      b.Date.Unix(),
+		Hash:         base64.URLEncoding.EncodeToString(h[:]),
+		Nonce:        b.Nonce,
+		PrevHash:     base64.URLEncoding.EncodeToString(p[:]),
+		Content:      b.Content,
+		Signature:    b.Signature,
+		Type:         b.Type,
+		PubKey:       b.PubKey,
+		Date:         b.Date.Unix(),
+		BubbleBabble: util.EncodeBubbleBabble(h),
 	}
 }
