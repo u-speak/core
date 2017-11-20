@@ -11,7 +11,7 @@ import (
 // A Block is a concrete data entity. It stores the content as well as metadata
 // TODO: Maybe separate content to minimize memory usage
 type Block struct {
-	Nonce     uint
+	Nonce     uint32
 	PrevHash  [32]byte
 	Content   string
 	Signature string

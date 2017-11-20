@@ -10,4 +10,5 @@ type BlockStore interface {
 	Valid(func([32]byte) bool) bool
 	Initialized() bool
 	Close()
+	Reinitialize() ([32]byte, error)
 }
