@@ -24,6 +24,7 @@ type Node struct {
 	ListenInterface   string
 	Version           string
 	remoteConnections map[string]*grpc.ClientConn
+	remoteInterfaces  []string
 }
 
 type ChainStatus struct {
@@ -132,8 +133,10 @@ func (n *Node) Connect(remote string) error {
 	if err != nil {
 		return err
 	}
+	n.remoteInterfaces = append(n.remoteInterfaces, remote)
 	n.remoteConnections[remote] = conn
 	log.Infof("Successfully connected to %s", remote)
+	conn.Close()
 	return nil
 }
 
@@ -156,11 +159,13 @@ func (n *Node) Push(b *chain.Block) {
 		Type:      b.Type,
 		PubKey:    b.PubKey,
 	}
-	for _, r := range n.remoteConnections {
-		client := d.NewDistributionServiceClient(r)
-		_, err := client.AddBlock(context.Background(), pb)
-		if err != nil {
-			log.Error(err)
+	for _,r := range n.remoteInterfaces {
+		conn,_ := grpc.Dial(r, grpc.WithInsecure())
+		client := d.NewDistributionServiceClient(conn)
+		_, errr := client.AddBlock(context.Background(), pb)
+		conn.Close()
+		if errr != nil {
+			log.Error(errr)
 		}
 	}
 }
