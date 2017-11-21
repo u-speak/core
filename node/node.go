@@ -159,8 +159,8 @@ func (n *Node) Push(b *chain.Block) {
 		Type:      b.Type,
 		PubKey:    b.PubKey,
 	}
-	for _,r := range n.remoteInterfaces {
-		conn,_ := grpc.Dial(r, grpc.WithInsecure())
+	for _, r := range n.remoteInterfaces {
+		conn, _ := grpc.Dial(r, grpc.WithInsecure())
 		client := d.NewDistributionServiceClient(conn)
 		_, errr := client.AddBlock(context.Background(), pb)
 		conn.Close()
@@ -239,12 +239,18 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	return nil
 }
 
+func (n *Node) ReinitializeChain() {
+	n.PostChain.Reinitialize()
+}
+
 // SynchronizeChain receives all the Blocks sent from an other node
 func (n *Node) SynchronizeChain(remote string) error {
+	n.ReinitializeChain()
 	lh := n.PostChain.LastHash()
 	log.Infof("Synchronization started. Receiving Blocks from other node.")
 	params := &d.SyncParams{LastHash: lh[:]}
-	client := d.NewDistributionServiceClient(n.remoteConnections[remote])
+	conn, _ := grpc.Dial(remote, grpc.WithInsecure())
+	client := d.NewDistributionServiceClient(conn)
 	stream, err := client.Synchronize(context.Background(), params)
 	if err != nil {
 		return err
@@ -276,6 +282,7 @@ func (n *Node) SynchronizeChain(remote string) error {
 			return err
 		}
 	}
+	conn.Close()
 	log.Infof("Synchronization finished successfully.")
 	return nil
 }
