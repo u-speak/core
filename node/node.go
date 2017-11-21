@@ -75,6 +75,7 @@ func New(c config.Configuration) (*Node, error) {
 		remoteConnections: make(map[string]*grpc.ClientConn),
 	}, nil
 }
+
 // encHash returns the String encoded Hash
 func encHash(h [32]byte) string {
 	return base64.URLEncoding.EncodeToString(h[:])
@@ -189,8 +190,6 @@ func (n *Node) SmartAdd(b chain.Block) {
 func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
 	log.Debugf("Received Block: %s", block.Content)
 	var p [32]byte
-	var h [32]byte
-	copy(h[:], block.Previous)
 	copy(p[:], block.Previous)
 	b := chain.Block{
 		Content:   block.Content,
@@ -198,25 +197,25 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		PubKey:    block.PubKey,
 		Date:      time.Unix(int64(block.Date), 0),
 		Signature: block.Signature,
-		PrevHash:  h,
+		PrevHash:  p,
 		Nonce:     block.Nonce,
 	}
 
 	switch b.Type {
 	case "post":
 		if p != n.PostChain.LastHash() {
-			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes")
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes" , p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 
 	case "image":
 		if p != n.ImageChain.LastHash() {
-			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes")
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 	case "key":
 		if p != n.KeyChain.LastHash() {
-			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes")
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 
@@ -318,6 +317,7 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 	log.Infof("Synchronization for keychain finished successfully.")
 	return nil
 }
+
 // ReinitializeChain Re-Initializes all chains
 func (n *Node) ReinitializeChain() {
 	n.PostChain.Reinitialize()
