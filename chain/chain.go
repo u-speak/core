@@ -126,3 +126,20 @@ func (c *Chain) Search(query string) []*Block {
 	}
 	return bs
 }
+
+//Reinitialize clears the Chain
+func Reinitialize(b BlockStore, validate ValidationFunc) (*Chain, error) {
+
+	lh, err := b.Reinitialize()
+	if err != nil {
+		return nil, err
+	}
+	c := &Chain{blocks: b, validate: validate}
+	c.lastHash = lh
+	if !c.Valid() {
+		log.WithField("store", b).Error("Could not initialize Chain")
+		return nil, ErrInvalidChain
+	}
+	return c, nil
+
+}
