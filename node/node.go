@@ -75,7 +75,7 @@ func New(c config.Configuration) (*Node, error) {
 		remoteConnections: make(map[string]*grpc.ClientConn),
 	}, nil
 }
-
+// encHash returns the String encoded Hash
 func encHash(h [32]byte) string {
 	return base64.URLEncoding.EncodeToString(h[:])
 }
@@ -170,34 +170,28 @@ func (n *Node) Push(b *chain.Block) {
 	}
 }
 
-//SmartAdd Adds Blocks to the specified chain
-func (n *Node) SmartAdd(b chain.Block){
-	 var c *chain.Chain
-        switch b.Type {
-        case "post":
-                c = n.PostChain
-        case "image":
-                c = n.ImageChain
-        case "key":
-                c = n.KeyChain
-        }
-        c.Add(b)
-
-
+// SmartAdd Adds Blocks to the specified chain
+func (n *Node) SmartAdd(b chain.Block) {
+	var c *chain.Chain
+	switch b.Type {
+	case "post":
+		c = n.PostChain
+	case "image":
+		c = n.ImageChain
+	case "key":
+		c = n.KeyChain
+	}
+	c.Add(b)
 
 }
 
-// AddBlock receives a sent Block from other node
+// AddBlock receives a sent Block from other node or repl
 func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
 	log.Debugf("Received Block: %s", block.Content)
 	var p [32]byte
-	copy(p[:], block.Previous)
-	if p != n.PostChain.LastHash() {
-		log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
-		return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
-	}
 	var h [32]byte
 	copy(h[:], block.Previous)
+	copy(p[:], block.Previous)
 	b := chain.Block{
 		Content:   block.Content,
 		Type:      block.Type,
@@ -207,16 +201,36 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		PrevHash:  h,
 		Nonce:     block.Nonce,
 	}
+
+	switch b.Type {
+	case "post":
+		if p != n.PostChain.LastHash() {
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes")
+			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
+		}
+
+	case "image":
+		if p != n.ImageChain.LastHash() {
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes")
+			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
+		}
+	case "key":
+		if p != n.KeyChain.LastHash() {
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes")
+			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
+		}
+
+	}
+
 	n.SmartAdd(b)
 	return &d.PushReturn{}, nil
 }
 
-// Synchronize sends all Blocks to an other node
+// Synchronize sends all Blocks from all chains to an other node
 func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_SynchronizeServer) error {
 	log.Infof("Synchronization started. Sending all Blocks to another Node.")
 	h := n.PostChain.LastHash()
 	b := n.PostChain.Get(h)
-
 	c := [32]byte{}
 	var blst list.List
 	for {
@@ -243,20 +257,81 @@ func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_Synchro
 			log.Error(err)
 		}
 	}
-	log.Infof("Synchronization finished successfully.")
+	log.Infof("Synchronization for postchain finished successfully.")
+
+	h = n.ImageChain.LastHash()
+	b = n.ImageChain.Get(h)
+	c = [32]byte{}
+	for {
+		blst.PushBack(b.Content)
+		if b.PrevHash == c {
+			break
+		}
+		b = n.ImageChain.Get(b.PrevHash)
+	}
+	blk = []*chain.Block{}
+	blk, _ = n.ImageChain.DumpChain()
+
+	for i := len(blk) - 2; i >= 0; i-- {
+		err := stream.Send(&d.Block{
+			Content:   blk[i].Content,
+			Nonce:     blk[i].Nonce,
+			Previous:  blk[i].PrevHash[:],
+			Type:      blk[i].Type,
+			PubKey:    blk[i].PubKey,
+			Date:      blk[i].Date.Unix(),
+			Signature: blk[i].Signature,
+		})
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	log.Infof("Synchronization for imagechain finished successfully.")
+
+	h = n.KeyChain.LastHash()
+	b = n.KeyChain.Get(h)
+	c = [32]byte{}
+	for {
+		blst.PushBack(b.Content)
+		if b.PrevHash == c {
+			break
+		}
+		b = n.KeyChain.Get(b.PrevHash)
+	}
+	blk = []*chain.Block{}
+	blk, _ = n.KeyChain.DumpChain()
+
+	for i := len(blk) - 2; i >= 0; i-- {
+		err := stream.Send(&d.Block{
+			Content:   blk[i].Content,
+			Nonce:     blk[i].Nonce,
+			Previous:  blk[i].PrevHash[:],
+			Type:      blk[i].Type,
+			PubKey:    blk[i].PubKey,
+			Date:      blk[i].Date.Unix(),
+			Signature: blk[i].Signature,
+		})
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	log.Infof("Synchronization for keychain finished successfully.")
 	return nil
 }
-
+// ReinitializeChain Re-Initializes all chains
 func (n *Node) ReinitializeChain() {
 	n.PostChain.Reinitialize()
+	n.ImageChain.Reinitialize()
+	n.KeyChain.Reinitialize()
 }
 
 // SynchronizeChain receives all the Blocks sent from an other node
 func (n *Node) SynchronizeChain(remote string) error {
 	n.ReinitializeChain()
-	lh := n.PostChain.LastHash()
+	lhp := n.PostChain.LastHash()
 	log.Infof("Synchronization started. Receiving Blocks from other node.")
-	params := &d.SyncParams{LastHash: lh[:]}
+
+	params := &d.SyncParams{LastHash: lhp[:]}
 	conn, _ := grpc.Dial(remote, grpc.WithInsecure())
 	client := d.NewDistributionServiceClient(conn)
 	stream, err := client.Synchronize(context.Background(), params)
@@ -273,17 +348,17 @@ func (n *Node) SynchronizeChain(remote string) error {
 		}
 		var p [32]byte
 		copy(p[:], block.Previous)
-
 		b := chain.Block{
 			Content:   block.Content,
-			Type:      "post",
+			Type:      block.Type,
 			PubKey:    block.PubKey,
 			Date:      time.Unix(block.Date, 0),
 			Signature: block.Signature,
 			PrevHash:  p,
 			Nonce:     block.Nonce,
 		}
-		log.Infof("Got a new Block: %v", b.Content)
+
+		log.Infof("Got a new Block: %v", b.Type)
 		log.Debugf("Received %+v", b)
 		n.SmartAdd(b)
 	}
