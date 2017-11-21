@@ -170,6 +170,23 @@ func (n *Node) Push(b *chain.Block) {
 	}
 }
 
+//SmartAdd Adds Blocks to the specified chain
+func (n *Node) SmartAdd(b chain.Block){
+	 var c *chain.Chain
+        switch b.Type {
+        case "post":
+                c = n.PostChain
+        case "image":
+                c = n.ImageChain
+        case "key":
+                c = n.KeyChain
+        }
+        c.Add(b)
+
+
+
+}
+
 // AddBlock receives a sent Block from other node
 func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
 	log.Debugf("Received Block: %s", block.Content)
@@ -190,16 +207,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		PrevHash:  h,
 		Nonce:     block.Nonce,
 	}
-	var c *chain.Chain
-	switch b.Type {
-	case "post":
-		c = n.PostChain
-	case "image":
-		c = n.ImageChain
-	case "key":
-		c = n.KeyChain
-	}
-	c.Add(b)
+	n.SmartAdd(b)
 	return &d.PushReturn{}, nil
 }
 
@@ -277,10 +285,7 @@ func (n *Node) SynchronizeChain(remote string) error {
 		}
 		log.Infof("Got a new Block: %v", b.Content)
 		log.Debugf("Received %+v", b)
-		_, err = n.PostChain.Add(b)
-		if err != nil {
-			return err
-		}
+		n.SmartAdd(b)
 	}
 	conn.Close()
 	log.Infof("Synchronization finished successfully.")
