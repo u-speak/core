@@ -8,11 +8,14 @@ import (
 	"time"
 )
 
+// Hash is a wrapper to easily compare digests
+type Hash [32]byte
+
 // A Block is a concrete data entity. It stores the content as well as metadata
 // TODO: Maybe separate content to minimize memory usage
 type Block struct {
 	Nonce     uint32
-	PrevHash  [32]byte
+	PrevHash  Hash
 	Content   string
 	Signature string
 	Type      string
@@ -21,7 +24,7 @@ type Block struct {
 }
 
 // Hash returns the sha256 hash of the block
-func (b Block) Hash() [32]byte {
+func (b Block) Hash() Hash {
 	// Interject the bstr with literals to prevent attacks on the block structure
 	bstr := "C" + b.Content + "T" + b.Type + "S" + b.Signature + "P" + b.PubKey + "D" + strconv.FormatUint(uint64(b.Date.Unix()), 10) + "N" + strconv.FormatUint(uint64(b.Nonce), 10) + "PREV" + base64.URLEncoding.EncodeToString(b.PrevHash[:])
 	return sha256.Sum256([]byte(bstr))
@@ -48,4 +51,16 @@ func genesisBlock() Block {
 		Type:      "GENESIS",
 		Date:      time.Unix(0, 0),
 	}
+}
+
+// EqSlice is a utility function to compare the hash to a slice instead of a fixed size array
+func (h Hash) EqSlice(s []byte) bool {
+	var c Hash
+	copy(c[:], s)
+	return h == c
+}
+
+// Empty returns whether the hash is empty
+func (h Hash) Empty() bool {
+	return h == [32]byte{}
 }

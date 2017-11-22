@@ -16,13 +16,13 @@ type BoltStore struct {
 }
 
 // Init initializes the BoltStore
-func (b *BoltStore) Init() ([32]byte, error) {
+func (b *BoltStore) Init() (Hash, error) {
 	if b.initialized {
-		return [32]byte{}, ErrStoreInitialized
+		return Hash{}, ErrStoreInitialized
 	}
 	db, err := bolt.Open(b.Path, 0600, nil)
 	if err != nil {
-		return [32]byte{}, err
+		return Hash{}, err
 	}
 	err = db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("meta"))
@@ -49,9 +49,9 @@ func (b *BoltStore) Init() ([32]byte, error) {
 		return nil
 	})
 	if err != nil {
-		return [32]byte{}, err
+		return Hash{}, err
 	}
-	var lh [32]byte
+	var lh Hash
 	err = db.View(func(tx *bolt.Tx) error {
 		meta := tx.Bucket([]byte("meta"))
 		hs := meta.Get([]byte("lasthash"))
@@ -62,7 +62,7 @@ func (b *BoltStore) Init() ([32]byte, error) {
 		}
 		log.WithField("db", b.Path).Info("No metadata saved, calculating lasthash")
 		blocks := tx.Bucket([]byte("blocks"))
-		bloom := map[[32]byte]bool{}
+		bloom := map[Hash]bool{}
 		err := blocks.ForEach(func(k, v []byte) error {
 			bl, err := DecodeBlock(v)
 			if err != nil {
@@ -74,7 +74,7 @@ func (b *BoltStore) Init() ([32]byte, error) {
 		if err != nil {
 			return err
 		}
-		var kh [32]byte
+		var kh Hash
 		err = blocks.ForEach(func(k, v []byte) error {
 			copy(kh[:], k)
 			if bloom[kh] == false {
@@ -92,7 +92,7 @@ func (b *BoltStore) Init() ([32]byte, error) {
 		return meta.Put([]byte("lasthash"), lh[:])
 	})
 	if err != nil {
-		return [32]byte{}, err
+		return Hash{}, err
 	}
 	log.WithFields(log.Fields{
 		"db":       b.Path,
@@ -109,7 +109,7 @@ func (b *BoltStore) Initialized() bool {
 }
 
 // Get retrieves a block by its hash
-func (b *BoltStore) Get(hash [32]byte) *Block {
+func (b *BoltStore) Get(hash Hash) *Block {
 	var bl *Block
 	err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("blocks"))
@@ -146,11 +146,11 @@ func (b *BoltStore) Add(block Block) error {
 	return err
 }
 
-func (b *BoltStore) keys() [][32]byte {
-	ret := [][32]byte{}
+func (b *BoltStore) keys() []Hash {
+	ret := []Hash{}
 	_ = b.db.View(func(tx *bolt.Tx) error {
 		blocks := tx.Bucket([]byte("blocks"))
-		var kh [32]byte
+		var kh Hash
 		_ = blocks.ForEach(func(k, _ []byte) error {
 			copy(kh[:], k)
 			ret = append(ret, kh)
@@ -173,15 +173,15 @@ func (b *BoltStore) Length() uint64 {
 }
 
 // Valid checks if all blocks are connected and have the required difficulty
-func (b *BoltStore) Valid(val func([32]byte) bool) bool {
+func (b *BoltStore) Valid(val func(Hash) bool) bool {
 	if b.Length() == 0 {
 		return false
 	}
 	valid := true
-	f := make(map[[32]byte]bool)
+	f := make(map[Hash]bool)
 	err := b.db.View(func(tx *bolt.Tx) error {
 		blocks := tx.Bucket([]byte("blocks"))
-		var idx [32]byte
+		var idx Hash
 		_ = blocks.ForEach(func(k, v []byte) error {
 			copy(idx[:], k)
 			f[idx] = true
@@ -222,7 +222,7 @@ func (b *BoltStore) Close() {
 }
 
 // Reinitialize resets the chain
-func (b *BoltStore) Reinitialize() ([32]byte, error) {
+func (b *BoltStore) Reinitialize() (Hash, error) {
 	b.Close()
 	_ = os.Remove(b.Path)
 	return b.Init()

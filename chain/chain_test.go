@@ -19,7 +19,7 @@ func disablelog() {
 
 func emptyChain(s BlockStore) *Chain {
 	disablelog()
-	c, err := New(s, func([32]byte) bool { return true })
+	c, err := New(s, func(Hash) bool { return true })
 	if err != nil {
 		panic(err)
 	}

@@ -12,12 +12,12 @@ type MemoryStore struct {
 }
 
 // Init initializes the raw storage
-func (b *MemoryStore) Init() ([32]byte, error) {
+func (b *MemoryStore) Init() (Hash, error) {
 	if len(b.raw) == 0 {
 		bl := genesisBlock()
 		b.raw = append(b.raw, &bl)
 	}
-	preds := make(map[[32]byte]bool)
+	preds := make(map[Hash]bool)
 	for _, b := range b.raw {
 		preds[b.PrevHash] = true
 	}
@@ -27,7 +27,7 @@ func (b *MemoryStore) Init() ([32]byte, error) {
 		}
 	}
 	b.initialized = true
-	return [32]byte{}, errors.New("Could not find lasthash")
+	return Hash{}, errors.New("Could not find lasthash")
 }
 
 // Initialized returns whether or not this store has been initialized
@@ -36,7 +36,7 @@ func (b *MemoryStore) Initialized() bool {
 }
 
 // Get retrieves a block by its hash
-func (b *MemoryStore) Get(hash [32]byte) *Block {
+func (b *MemoryStore) Get(hash Hash) *Block {
 	for i := range b.raw {
 		if b.raw[i].Hash() == hash {
 			return b.raw[i]
@@ -56,8 +56,8 @@ func (b *MemoryStore) Length() uint64 {
 	return uint64(len(b.raw))
 }
 
-func (b *MemoryStore) bloomFilter() map[[32]byte]bool {
-	f := make(map[[32]byte]bool)
+func (b *MemoryStore) bloomFilter() map[Hash]bool {
+	f := make(map[Hash]bool)
 	for _, v := range b.raw {
 		f[v.Hash()] = true
 	}
@@ -65,7 +65,7 @@ func (b *MemoryStore) bloomFilter() map[[32]byte]bool {
 }
 
 // Valid checks if all blocks are connected and have the required difficulty
-func (b *MemoryStore) Valid(v func([32]byte) bool) bool {
+func (b *MemoryStore) Valid(v func(Hash) bool) bool {
 	f := b.bloomFilter()
 	for _, b := range b.raw {
 		if !v(b.Hash()) {
@@ -82,7 +82,7 @@ func (b *MemoryStore) Close() {
 }
 
 // Reinitialize resets the chain
-func (b *MemoryStore) Reinitialize() ([32]byte, error) {
+func (b *MemoryStore) Reinitialize() (Hash, error) {
 	b.raw = []*Block{}
 	return b.Init()
 }

@@ -2,13 +2,13 @@ package chain
 
 // BlockStore is the interface needed for storing data
 type BlockStore interface {
-	Init() ([32]byte, error)
-	Get([32]byte) *Block
+	Init() (Hash, error)
+	Get(Hash) *Block
 	Add(Block) error
 	Length() uint64
 	//Keys() [][32]byte
-	Valid(func([32]byte) bool) bool
+	Valid(func(Hash) bool) bool
 	Initialized() bool
 	Close()
-	Reinitialize() ([32]byte, error)
+	Reinitialize() (Hash, error)
 }

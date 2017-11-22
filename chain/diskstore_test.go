@@ -105,7 +105,7 @@ func TestDiskStoreRestore(t *testing.T) {
 	_ = os.RemoveAll(rpath)
 	_ = os.Mkdir(rpath, os.ModePerm)
 	s := &DiskStore{Folder: rpath}
-	c1, err := New(s, func([32]byte) bool { return true })
+	c1, err := New(s, func(Hash) bool { return true })
 	if err != nil {
 		t.Errorf("Chain creation failed: %s", err)
 	}
@@ -116,7 +116,7 @@ func TestDiskStoreRestore(t *testing.T) {
 		t.Error(err)
 	}
 
-	c2, err := New(s, func([32]byte) bool { return true })
+	c2, err := New(s, func(Hash) bool { return true })
 	if c2.Length() != c1.Length() {
 		t.Error("Chains are not the same length")
 	}
@@ -137,14 +137,14 @@ func BenchmarkDiskStoreAdd(b *testing.B) {
 	}
 }
 
-func keys(b *DiskStore) [][32]byte {
-	hkeys := [][32]byte{}
+func keys(b *DiskStore) []Hash {
+	hkeys := []Hash{}
 	files, err := ioutil.ReadDir(b.Folder)
 	if err != nil {
 		return nil
 	}
 	for _, f := range files {
-		stat := [32]byte{}
+		stat := Hash{}
 		h, err := base64.URLEncoding.DecodeString(f.Name())
 		if err != nil {
 			continue

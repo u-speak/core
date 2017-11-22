@@ -101,7 +101,7 @@ func TestBoltStoreRestore(t *testing.T) {
 	p := path.Join(os.TempDir(), "uspeak-test-restore.db")
 	_ = os.Remove(boltPath)
 	s := &BoltStore{Path: p}
-	c1, err := New(s, func([32]byte) bool { return true })
+	c1, err := New(s, func(Hash) bool { return true })
 	if err != nil {
 		t.Errorf("Chain creation failed: %s", err)
 	}
@@ -112,7 +112,7 @@ func TestBoltStoreRestore(t *testing.T) {
 		t.Error(err)
 	}
 	s.Close()
-	c2, err := New(s, func([32]byte) bool { return true })
+	c2, err := New(s, func(Hash) bool { return true })
 	if c2.Length() != c1.Length() {
 		t.Error("Chains are not the same length")
 	}

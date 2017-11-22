@@ -18,19 +18,19 @@ type DiskStore struct {
 }
 
 // Init initializes the Diskstore
-func (b *DiskStore) Init() ([32]byte, error) {
+func (b *DiskStore) Init() (Hash, error) {
 	err := os.Mkdir(b.Folder, os.ModePerm)
 	if err != nil && !os.IsExist(err) {
-		return [32]byte{}, err
+		return Hash{}, err
 	}
-	ph := map[[32]byte]bool{}
+	ph := map[Hash]bool{}
 	a := b.all()
 	if len(a) == 0 {
 		log.Infof("Initializing empty chain in directory %s", b.Folder)
 		g := genesisBlock()
 		err := b.Add(g)
 		if err != nil {
-			return [32]byte{}, err
+			return Hash{}, err
 		}
 		return g.Hash(), nil
 	}
@@ -43,7 +43,7 @@ func (b *DiskStore) Init() ([32]byte, error) {
 		}
 	}
 	b.initialized = true
-	return [32]byte{}, errors.New("Could not calculate lasthash")
+	return Hash{}, errors.New("Could not calculate lasthash")
 }
 
 // Initialized returns whether or not this store has been initialized
@@ -52,7 +52,7 @@ func (b *DiskStore) Initialized() bool {
 }
 
 // Get retrieves a block by its hash
-func (b *DiskStore) Get(hash [32]byte) *Block {
+func (b *DiskStore) Get(hash Hash) *Block {
 	file, err := os.Open(path.Join(b.Folder, base64.URLEncoding.EncodeToString(hash[:])))
 	if os.IsNotExist(err) {
 		return nil
@@ -104,7 +104,7 @@ func (b *DiskStore) all() []*Block {
 		return nil
 	}
 	for _, f := range files {
-		stat := [32]byte{}
+		stat := Hash{}
 		h, err := base64.URLEncoding.DecodeString(f.Name())
 		if err != nil {
 			log.Warn(err)
@@ -120,12 +120,12 @@ func (b *DiskStore) all() []*Block {
 }
 
 // Valid checks if all blocks are connected and have the required difficulty
-func (b *DiskStore) Valid(v func([32]byte) bool) bool {
+func (b *DiskStore) Valid(v func(Hash) bool) bool {
 	a := b.all()
 	if len(a) == 0 {
 		return false
 	}
-	f := make(map[[32]byte]bool)
+	f := make(map[Hash]bool)
 	for _, h := range a {
 		f[h.Hash()] = true
 	}
@@ -144,10 +144,10 @@ func (b *DiskStore) Close() {
 }
 
 // Reinitialize resets the chain
-func (b *DiskStore) Reinitialize() ([32]byte, error) {
+func (b *DiskStore) Reinitialize() (Hash, error) {
 	err := os.RemoveAll(b.Folder)
 	if err != nil {
-		return [32]byte{}, err
+		return Hash{}, err
 	}
 	return b.Init()
 }

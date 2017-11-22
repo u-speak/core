@@ -8,7 +8,7 @@ import (
 )
 
 // ValidationFunc is the requirement for mining
-type ValidationFunc func([32]byte) bool
+type ValidationFunc func(Hash) bool
 
 var (
 	// ErrInvalidChain gets returned when the chain validation fails
@@ -128,10 +128,10 @@ func (c *Chain) Search(query string) []*Block {
 }
 
 //Reinitialize clears the Chain
-func (c *Chain)Reinitialize() ([32]byte, error) {
+func (c *Chain) Reinitialize() ([32]byte, error) {
 	lh, err := c.blocks.Reinitialize()
 	if err != nil {
-	log.Errorf("Error initializing Chain. %+v", err)
+		log.Errorf("Error initializing Chain. %+v", err)
 	}
 	c.lastHash = lh
 	return c.blocks.Reinitialize()

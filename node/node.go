@@ -47,7 +47,7 @@ type Status struct {
 	Chains      ChainStatusList `json:"chains"`
 }
 
-func validateAll([32]byte) bool {
+func validateAll(chain.Hash) bool {
 	return true
 }
 
