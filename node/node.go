@@ -18,13 +18,12 @@ import (
 
 // Node is a wrapper around the chain. Nodes are the backbone of the network
 type Node struct {
-	PostChain         *chain.Chain
-	ImageChain        *chain.Chain
-	KeyChain          *chain.Chain
-	ListenInterface   string
-	Version           string
-	remoteConnections map[string]*grpc.ClientConn
-	remoteInterfaces  []string
+	PostChain        *chain.Chain
+	ImageChain       *chain.Chain
+	KeyChain         *chain.Chain
+	ListenInterface  string
+	Version          string
+	remoteInterfaces map[string]struct{}
 }
 
 type ChainStatus struct {
@@ -67,12 +66,12 @@ func New(c config.Configuration) (*Node, error) {
 		return nil, err
 	}
 	return &Node{
-		ListenInterface:   c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
-		ImageChain:        ic,
-		KeyChain:          kc,
-		PostChain:         pc,
-		Version:           c.Version,
-		remoteConnections: make(map[string]*grpc.ClientConn),
+		ListenInterface:  c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
+		ImageChain:       ic,
+		KeyChain:         kc,
+		PostChain:        pc,
+		Version:          c.Version,
+		remoteInterfaces: make(map[string]struct{}),
 	}, nil
 }
 
@@ -84,7 +83,7 @@ func encHash(h [32]byte) string {
 // Status returns the current running configuration of the node
 func (n *Node) Status() Status {
 	cons := []string{}
-	for k := range n.remoteConnections {
+	for k := range n.remoteInterfaces {
 		cons = append(cons, k)
 	}
 	return Status{
@@ -100,17 +99,23 @@ func (n *Node) Status() Status {
 	}
 }
 
-// GetInfo is a all purpose status request
-func (n *Node) GetInfo(ctx context.Context, params *d.StatusParams) (*d.Info, error) {
-	if _, contained := n.remoteConnections[params.Host]; !contained {
-		err := n.Connect(params.Host)
-		if err != nil {
-			log.Error("Failed to initialize reverse connection. Fulfilling request anyways...")
-		}
-	}
+// Info returns the serializable info struct
+func (n *Node) Info() *d.Info {
+	s := n.Status()
 	return &d.Info{
-		Length: n.PostChain.Length(),
-	}, nil
+		Length:          s.Length,
+		Valid:           n.PostChain.Valid() && n.ImageChain.Valid() && n.KeyChain.Valid(),
+		ListenInterface: s.Address,
+	}
+}
+
+// GetInfo is a all purpose status request
+func (n *Node) GetInfo(ctx context.Context, r *d.Info) (*d.Info, error) {
+	if _, ok := n.remoteInterfaces[r.ListenInterface]; !ok && n.ListenInterface != r.ListenInterface {
+		log.Infof("Establishing reverse connection with %s", r.ListenInterface)
+		n.Connect(r.ListenInterface)
+	}
+	return n.Info(), nil
 }
 
 // Run listens for connections to this node
@@ -127,17 +132,30 @@ func (n *Node) Run() {
 
 // Connect connects to a new remote
 func (n *Node) Connect(remote string) error {
-	if _, contained := n.remoteConnections[remote]; contained {
-		return errors.New("Node allready connected")
+	if _, ok := n.remoteInterfaces[remote]; ok {
+		return errors.New("Attempted to add an allready established interface")
 	}
-	conn, err := grpc.Dial(remote, grpc.WithInsecure())
+	n.remoteInterfaces[remote] = struct{}{}
+	conn, _ := grpc.Dial(remote, grpc.WithInsecure())
+	defer conn.Close()
+	client := d.NewDistributionServiceClient(conn)
+	i, err := client.GetInfo(context.Background(), n.Info())
 	if err != nil {
+		delete(n.remoteInterfaces, remote)
 		return err
 	}
-	n.remoteInterfaces = append(n.remoteInterfaces, remote)
-	n.remoteConnections[remote] = conn
-	log.Infof("Successfully connected to %s", remote)
-	conn.Close()
+	if !i.Valid {
+		delete(n.remoteInterfaces, remote)
+		return errors.New("Remote chain invalid")
+	}
+	if i.Length > n.Status().Length {
+		err := n.SynchronizeChain(remote)
+		if err != nil {
+			delete(n.remoteInterfaces, remote)
+			return err
+		}
+	}
+	log.Infof("Added connection %s", remote)
 	return nil
 }
 
@@ -160,13 +178,16 @@ func (n *Node) Push(b *chain.Block) {
 		Type:      b.Type,
 		PubKey:    b.PubKey,
 	}
-	for _, r := range n.remoteInterfaces {
+	for r := range n.remoteInterfaces {
 		conn, _ := grpc.Dial(r, grpc.WithInsecure())
 		client := d.NewDistributionServiceClient(conn)
-		_, errr := client.AddBlock(context.Background(), pb)
-		conn.Close()
-		if errr != nil {
-			log.Error(errr)
+		_, err := client.AddBlock(context.Background(), pb)
+		if err != nil {
+			log.Error(err)
+		}
+		err = conn.Close()
+		if err != nil {
+			log.Error(err)
 		}
 	}
 }
@@ -183,7 +204,6 @@ func (n *Node) SmartAdd(b chain.Block) {
 		c = n.KeyChain
 	}
 	c.Add(b)
-
 }
 
 // AddBlock receives a sent Block from other node or repl
@@ -195,7 +215,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		Content:   block.Content,
 		Type:      block.Type,
 		PubKey:    block.PubKey,
-		Date:      time.Unix(int64(block.Date), 0),
+		Date:      time.Unix(block.Date, 0),
 		Signature: block.Signature,
 		PrevHash:  p,
 		Nonce:     block.Nonce,
@@ -204,7 +224,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 	switch b.Type {
 	case "post":
 		if p != n.PostChain.LastHash() {
-			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes" , p)
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 

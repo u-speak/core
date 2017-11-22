@@ -5,6 +5,7 @@ message Info {
   bool Valid = 2;
   uint64 Length = 3;
   bytes LastHash = 4; 
+  string ListenInterface = 5;
 }
 
 message StatusParams{
@@ -29,7 +30,7 @@ message PushReturn {
 }
 
 service DistributionService {
-  rpc GetInfo(StatusParams) returns (Info) {}
+  rpc GetInfo(Info) returns (Info) {}
   rpc Synchronize(SyncParams) returns (stream Block) {}
   rpc AddBlock(Block) returns (PushReturn) {}
 }
