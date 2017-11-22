@@ -204,7 +204,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 	switch b.Type {
 	case "post":
 		if p != n.PostChain.LastHash() {
-			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes" , p)
+			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 
@@ -228,93 +228,61 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 // Synchronize sends all Blocks from all chains to an other node
 func (n *Node) Synchronize(p *d.SyncParams, stream d.DistributionService_SynchronizeServer) error {
 	log.Infof("Synchronization started. Sending all Blocks to another Node.")
+	names := []string{"postchain", "imagechain", "keychain"}
+	c := [32]byte{}
 	h := n.PostChain.LastHash()
 	b := n.PostChain.Get(h)
-	c := [32]byte{}
 	var blst list.List
-	for {
-		blst.PushBack(b.Content)
-		if b.PrevHash == c {
-			break
+	for k := 0; k < 3; k++ {
+		if k == 0 {
+			h = n.PostChain.LastHash()
+			b = n.PostChain.Get(h)
+		} else if k == 1 {
+			h = n.ImageChain.LastHash()
+			b = n.ImageChain.Get(h)
+		} else {
+			h = n.KeyChain.LastHash()
+			b = n.KeyChain.Get(h)
 		}
-		b = n.PostChain.Get(b.PrevHash)
-	}
-	blk := []*chain.Block{}
-	blk, _ = n.PostChain.DumpChain()
 
-	for i := len(blk) - 2; i >= 0; i-- {
-		err := stream.Send(&d.Block{
-			Content:   blk[i].Content,
-			Nonce:     blk[i].Nonce,
-			Previous:  blk[i].PrevHash[:],
-			Type:      blk[i].Type,
-			PubKey:    blk[i].PubKey,
-			Date:      blk[i].Date.Unix(),
-			Signature: blk[i].Signature,
-		})
-		if err != nil {
-			log.Error(err)
+		for {
+			blst.PushBack(b.Content)
+			if b.PrevHash == c {
+				break
+			}
+			if k == 0 {
+				b = n.PostChain.Get(b.PrevHash)
+			} else if k == 1 {
+				b = n.ImageChain.Get(b.PrevHash)
+			} else {
+				b = n.KeyChain.Get(b.PrevHash)
+			}
 		}
-	}
-	log.Infof("Synchronization for postchain finished successfully.")
+		blk := []*chain.Block{}
+		if k == 0 {
+			blk, _ = n.PostChain.DumpChain()
+		} else if k == 1 {
+			blk, _ = n.ImageChain.DumpChain()
+		} else {
+			blk, _ = n.KeyChain.DumpChain()
+		}
 
-	h = n.ImageChain.LastHash()
-	b = n.ImageChain.Get(h)
-	c = [32]byte{}
-	for {
-		blst.PushBack(b.Content)
-		if b.PrevHash == c {
-			break
+		for i := len(blk) - 2; i >= 0; i-- {
+			err := stream.Send(&d.Block{
+				Content:   blk[i].Content,
+				Nonce:     blk[i].Nonce,
+				Previous:  blk[i].PrevHash[:],
+				Type:      blk[i].Type,
+				PubKey:    blk[i].PubKey,
+				Date:      blk[i].Date.Unix(),
+				Signature: blk[i].Signature,
+			})
+			if err != nil {
+				log.Error(err)
+			}
 		}
-		b = n.ImageChain.Get(b.PrevHash)
+		log.Infof("Synchronization for %v finished successfully.", names[k])
 	}
-	blk = []*chain.Block{}
-	blk, _ = n.ImageChain.DumpChain()
-
-	for i := len(blk) - 2; i >= 0; i-- {
-		err := stream.Send(&d.Block{
-			Content:   blk[i].Content,
-			Nonce:     blk[i].Nonce,
-			Previous:  blk[i].PrevHash[:],
-			Type:      blk[i].Type,
-			PubKey:    blk[i].PubKey,
-			Date:      blk[i].Date.Unix(),
-			Signature: blk[i].Signature,
-		})
-		if err != nil {
-			log.Error(err)
-		}
-	}
-	log.Infof("Synchronization for imagechain finished successfully.")
-
-	h = n.KeyChain.LastHash()
-	b = n.KeyChain.Get(h)
-	c = [32]byte{}
-	for {
-		blst.PushBack(b.Content)
-		if b.PrevHash == c {
-			break
-		}
-		b = n.KeyChain.Get(b.PrevHash)
-	}
-	blk = []*chain.Block{}
-	blk, _ = n.KeyChain.DumpChain()
-
-	for i := len(blk) - 2; i >= 0; i-- {
-		err := stream.Send(&d.Block{
-			Content:   blk[i].Content,
-			Nonce:     blk[i].Nonce,
-			Previous:  blk[i].PrevHash[:],
-			Type:      blk[i].Type,
-			PubKey:    blk[i].PubKey,
-			Date:      blk[i].Date.Unix(),
-			Signature: blk[i].Signature,
-		})
-		if err != nil {
-			log.Error(err)
-		}
-	}
-	log.Infof("Synchronization for keychain finished successfully.")
 	return nil
 }
 
