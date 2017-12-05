@@ -16,6 +16,11 @@ import (
 	"time"
 )
 
+const (
+	// MaxMsgSize specifies the largest packet size for grpc calls
+	MaxMsgSize = 5242880
+)
+
 // Node is a wrapper around the chain. Nodes are the backbone of the network
 type Node struct {
 	PostChain        *chain.Chain
@@ -125,7 +130,8 @@ func (n *Node) Run() {
 	if err != nil {
 		log.Errorf("Could not listen on %s: %s", n.ListenInterface, err)
 	}
-	grpcServer := grpc.NewServer()
+	// Set MsgSize to 5MB
+	grpcServer := grpc.NewServer(grpc.MaxRecvMsgSize(MaxMsgSize), grpc.MaxRecvMsgSize(MaxMsgSize))
 	d.RegisterDistributionServiceServer(grpcServer, n)
 	log.Fatal(grpcServer.Serve(lis))
 }
@@ -136,7 +142,10 @@ func (n *Node) Connect(remote string) error {
 		return errors.New("Attempted to add an allready established interface")
 	}
 	n.remoteInterfaces[remote] = struct{}{}
-	conn, _ := grpc.Dial(remote, grpc.WithInsecure())
+	conn, err := dial(remote)
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 	client := d.NewDistributionServiceClient(conn)
 	i, err := client.GetInfo(context.Background(), n.Info())
@@ -179,9 +188,12 @@ func (n *Node) Push(b *chain.Block) {
 		PubKey:    b.PubKey,
 	}
 	for r := range n.remoteInterfaces {
-		conn, _ := grpc.Dial(r, grpc.WithInsecure())
+		conn, err := dial(r)
+		if err != nil {
+			continue
+		}
 		client := d.NewDistributionServiceClient(conn)
-		_, err := client.AddBlock(context.Background(), pb)
+		_, err = client.AddBlock(context.Background(), pb)
 		if err != nil {
 			log.Error(err)
 		}
@@ -208,7 +220,6 @@ func (n *Node) SmartAdd(b chain.Block) {
 
 // AddBlock receives a sent Block from other node or repl
 func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
-	log.Debugf("Received Block: %s", block.Content)
 	var p [32]byte
 	copy(p[:], block.Previous)
 	b := chain.Block{
@@ -220,6 +231,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		PrevHash:  p,
 		Nonce:     block.Nonce,
 	}
+	log.Debugf("Received Block with hash: %s", base64.URLEncoding.EncodeToString(b.Hash().Bytes()))
 
 	switch b.Type {
 	case "post":
@@ -240,7 +252,6 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		}
 
 	}
-
 	n.SmartAdd(b)
 	return &d.PushReturn{}, nil
 }
@@ -320,7 +331,10 @@ func (n *Node) SynchronizeChain(remote string) error {
 	log.Infof("Synchronization started. Receiving Blocks from other node.")
 
 	params := &d.SyncParams{LastHash: lhp[:]}
-	conn, _ := grpc.Dial(remote, grpc.WithInsecure())
+	conn, err := dial(remote)
+	if err != nil {
+		return err
+	}
 	client := d.NewDistributionServiceClient(conn)
 	stream, err := client.Synchronize(context.Background(), params)
 	if err != nil {
@@ -353,4 +367,13 @@ func (n *Node) SynchronizeChain(remote string) error {
 	conn.Close()
 	log.Infof("Synchronization finished successfully.")
 	return nil
+}
+
+func dial(r string) (*grpc.ClientConn, error) {
+	return grpc.Dial(r,
+		grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(MaxMsgSize),
+			grpc.MaxCallSendMsgSize(MaxMsgSize),
+		))
 }

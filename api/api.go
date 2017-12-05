@@ -1,11 +1,18 @@
 package api
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
+	"image"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+
+	"image/jpeg"
+	"image/png"
 
 	"github.com/kpashka/echo-logrusmiddleware"
 	"github.com/labstack/echo"
@@ -103,6 +110,8 @@ func (a *API) Run() error {
 	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
 	apiV1.GET("/chains/:type/:hash", a.getBlock, validateChain)
+	apiV1.GET("/images/:hash", a.getImage)
+	apiV1.POST("/images", a.uploadImage)
 	apiV1.POST("/chains/:type", a.addBlock, validateChain)
 	apiV1.GET("/chains/:type", a.getBlocks, validateChain)
 	apiV1.GET("/search", a.getSearch)
@@ -115,7 +124,6 @@ func (a *API) Run() error {
 		}))
 		admin.GET("/nodes", a.getNodes)
 		admin.POST("/nodes", a.addNode)
-		//admin.GET("/sync/:node", a.syncNode)
 	}
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)
@@ -148,34 +156,88 @@ func (a *API) getBlock(c echo.Context) error {
 	return c.JSON(http.StatusOK, jsonize(b))
 }
 
-func decodeHash(s string) ([32]byte, error) {
-	h := [32]byte{}
-	var hs []byte
-	h, err := util.DecodeBubbleBabble(s)
-	if err == nil {
-		return h, nil
+func (a *API) uploadImage(c echo.Context) error {
+	if !a.node.ImageChain.Valid() {
+		return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: chain.ErrInvalidChain.Error()})
 	}
-	hs, err = base64.URLEncoding.DecodeString(s)
-	if err == nil {
-		copy(h[:], hs)
-		return h, nil
+	nonce := c.FormValue("nonce")
+	prevHash, err := decodeHash(c.FormValue("prevHash"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: PrevHash", Code: http.StatusBadRequest})
 	}
-	hs, err = base64.StdEncoding.DecodeString(s)
-	if err == nil {
-		copy(h[:], hs)
-		return h, nil
+	rh, err := decodeHash(c.FormValue("hash"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Hash", Code: http.StatusBadRequest})
 	}
-	hs, err = base64.RawURLEncoding.DecodeString(s)
-	if err == nil {
-		copy(h[:], hs)
-		return h, nil
+	n, err := strconv.ParseUint(nonce, 10, 32)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Nonce", Code: http.StatusBadRequest})
 	}
-	hs, err = base64.RawStdEncoding.DecodeString(s)
-	if err == nil {
-		copy(h[:], hs)
-		return h, nil
+	ts, err := strconv.ParseInt(nonce, 10, 64)
+	d := time.Unix(ts, 0)
+	bl := chain.Block{
+		Nonce:    uint32(n),
+		PrevHash: prevHash,
+		Type:     "image",
+		Date:     d,
 	}
-	return [32]byte{}, errors.New("Could not parse base64 data")
+	file, err := c.FormFile("image")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not find image", Code: http.StatusBadRequest})
+	}
+	src, err := file.Open()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not process image", Code: http.StatusBadRequest})
+	}
+	defer src.Close()
+
+	buff := bytes.NewBuffer([]byte{})
+	io.Copy(buff, src)
+	if buff.Len() >= node.MaxMsgSize {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Image to large, please compress it further or crop it", Code: http.StatusBadRequest})
+	}
+	bl.Content = string(buff.Bytes())
+	if bl.Hash() != rh {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash. Please recalculate the nonce", Code: http.StatusBadRequest})
+	}
+	a.node.Push(&bl)
+	return c.NoContent(http.StatusCreated)
+}
+
+func (a *API) getImage(c echo.Context) error {
+	if !a.node.ImageChain.Valid() {
+		return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: chain.ErrInvalidChain.Error()})
+	}
+	h, t := decodeImageHash(c.Param("hash"))
+	if h.Empty() {
+		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Could not decode hash"})
+	}
+	ib := a.node.ImageChain.Get(h)
+	if ib == nil {
+		return c.JSON(http.StatusNotFound, Error{Message: "Image not found", Code: http.StatusNotFound})
+	}
+	br := bytes.NewBuffer([]byte(ib.Content))
+	img, _, err := image.Decode(br)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not process image", Code: http.StatusBadRequest})
+	}
+
+	if t == "" {
+		t = c.Request().Header.Get("Accept")
+	}
+
+	switch t {
+	case "image/jpeg":
+		c.Response().Header().Set("Content-Type", "image/jpeg")
+		jpeg.Encode(c.Response().Writer, img, &jpeg.Options{Quality: 80})
+		return nil
+	case "image/png":
+		c.Response().Header().Set("Content-Type", "image/png")
+		png.Encode(c.Response().Writer, img)
+		return nil
+	default:
+		return c.JSON(http.StatusBadRequest, Error{Message: "Please indicate the requested format with the Accept header or the file type", Code: http.StatusBadRequest})
+	}
 }
 
 func (a *API) addBlock(c echo.Context) error {
@@ -271,11 +333,6 @@ func (a *API) addNode(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-// func (a *API) syncNode(c echo.Context) error {
-// 	//TODO: implement
-// 	return nil
-// }
-
 func jsonize(b *chain.Block) jsonBlock {
 	h := b.Hash()
 	p := b.PrevHash
@@ -290,4 +347,49 @@ func jsonize(b *chain.Block) jsonBlock {
 		Date:         b.Date.Unix(),
 		BubbleBabble: util.EncodeBubbleBabble(h),
 	}
+}
+
+func decodeImageHash(s string) (chain.Hash, string) {
+	a := strings.Split(s, ".")
+	h, _ := decodeHash(a[0])
+	if len(a) == 1 {
+		return h, ""
+	}
+	switch a[1] {
+	case "png":
+		return h, "image/png"
+	case "jpg", "jpeg":
+		return h, "image/jpeg"
+	}
+	return h, ""
+}
+
+func decodeHash(s string) (chain.Hash, error) {
+	h := [32]byte{}
+	var hs []byte
+	h, err := util.DecodeBubbleBabble(s)
+	if err == nil {
+		return h, nil
+	}
+	hs, err = base64.URLEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	hs, err = base64.StdEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	hs, err = base64.RawURLEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	hs, err = base64.RawStdEncoding.DecodeString(s)
+	if err == nil {
+		copy(h[:], hs)
+		return h, nil
+	}
+	return [32]byte{}, errors.New("Could not parse base64 data")
 }

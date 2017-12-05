@@ -64,3 +64,28 @@ func (h Hash) EqSlice(s []byte) bool {
 func (h Hash) Empty() bool {
 	return h == [32]byte{}
 }
+
+// FromSlice returns a hash from a slice
+func FromSlice(s []byte) Hash {
+	var h Hash
+	copy(h[:], s)
+	return h
+}
+
+// HasPrefix returns true when the slice is the prefix of the hash
+func (h Hash) HasPrefix(s []byte) bool {
+	if len(s) >= len(h) {
+		return h.EqSlice(s)
+	}
+	for i, b := range s {
+		if b != h[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Bytes returns the hash as a slice
+func (h Hash) Bytes() []byte {
+	return h[:]
+}

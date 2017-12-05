@@ -119,7 +119,6 @@ func (b *BoltStore) Get(hash Hash) *Block {
 		return err
 	})
 	if err != nil {
-		log.Error(err)
 		return nil
 	}
 	return bl
@@ -209,7 +208,6 @@ func (b *BoltStore) Valid(val func(Hash) bool) bool {
 		return nil
 	})
 	if err != nil {
-		log.Error(err)
 		return false
 	}
 	return valid
@@ -226,4 +224,24 @@ func (b *BoltStore) Reinitialize() (Hash, error) {
 	b.Close()
 	_ = os.Remove(b.Path)
 	return b.Init()
+}
+
+// ApproxHash returns the approximated hash
+func (b *BoltStore) ApproxHash(s []byte) Hash {
+	var h Hash
+	err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("blocks"))
+		bucket.ForEach(func(k, v []byte) error {
+			if FromSlice(k).HasPrefix(s) {
+				h = FromSlice(k)
+				return nil
+			}
+			return nil
+		})
+		return nil
+	})
+	if err != nil {
+		return [32]byte{}
+	}
+	return [32]byte{}
 }
