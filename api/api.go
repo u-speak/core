@@ -14,7 +14,6 @@ import (
 	"image/jpeg"
 	"image/png"
 
-	"github.com/kpashka/echo-logrusmiddleware"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +21,7 @@ import (
 	"github.com/u-speak/core/config"
 	"github.com/u-speak/core/node"
 	"github.com/u-speak/core/util"
+	"github.com/u-speak/logrusmiddleware"
 )
 
 // API is used as a container, allowing the REST API to access the node
