@@ -138,6 +138,7 @@ func (n *Node) Run() {
 
 // Connect connects to a new remote
 func (n *Node) Connect(remote string) error {
+	time.Sleep(1000 * time.Millisecond)
 	if _, ok := n.remoteInterfaces[remote]; ok {
 		return errors.New("Attempted to add an allready established interface")
 	}
@@ -170,13 +171,12 @@ func (n *Node) Connect(remote string) error {
 
 // SubmitBlock is called whenever a new block is submitted to the network
 func (n *Node) SubmitBlock(b chain.Block) {
-	log.Debug(n.PostChain)
 	log.Infof("Pushing block %x to network", b.Hash())
 	n.Push(&b)
 }
 
 // Push sends a block to all connected nodes
-func (n *Node) Push(b *chain.Block) {
+func (n *Node) Push(b *chain.Block) error {
 	h := b.PrevHash
 	pb := &d.Block{
 		Content:   b.Content,
@@ -196,26 +196,45 @@ func (n *Node) Push(b *chain.Block) {
 		_, err = client.AddBlock(context.Background(), pb)
 		if err != nil {
 			log.Error(err)
+			return err
 		}
 		err = conn.Close()
 		if err != nil {
 			log.Error(err)
+			return err
 		}
 	}
+	return nil
 }
 
 // SmartAdd Adds Blocks to the specified chain
-func (n *Node) SmartAdd(b chain.Block) {
+func (n *Node) SmartAdd(b chain.Block) error {
 	var c *chain.Chain
+	var add bool
+	add = true
 	switch b.Type {
 	case "post":
 		c = n.PostChain
+		if b.Hash() == c.LastHash() {
+			add = false
+		}
 	case "image":
 		c = n.ImageChain
+		if b.Hash() == c.LastHash() {
+			add = false
+		}
 	case "key":
 		c = n.KeyChain
+		if b.Hash() == c.LastHash() {
+			add = false
+		}
 	}
-	c.Add(b)
+	if !add {
+		return errors.New("Attempted to add an allready submitted block")
+	} else {
+		c.Add(b)
+		return nil
+	}
 }
 
 // AddBlock receives a sent Block from other node or repl
@@ -231,8 +250,8 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		PrevHash:  p,
 		Nonce:     block.Nonce,
 	}
-	log.Debugf("Received Block with hash: %s", base64.URLEncoding.EncodeToString(b.Hash().Bytes()))
 
+	log.Debugf("Received Block with hash: %s", base64.URLEncoding.EncodeToString(b.Hash().Bytes()))
 	switch b.Type {
 	case "post":
 		if p != n.PostChain.LastHash() {
@@ -250,9 +269,13 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
-
 	}
-	n.SmartAdd(b)
+	err := n.SmartAdd(b)
+	if err != nil {
+		log.Error(err)
+	} else {
+		return &d.PushReturn{}, nil
+	}
 	return &d.PushReturn{}, nil
 }
 
