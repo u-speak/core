@@ -26,15 +26,15 @@ type Configuration struct {
 	}
 	NodeNetwork struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`
-		Interface string `default:"127.0.0.1"`
+		Interface string `default:"127.0.0.1" env:"NODE_INTERFACE"`
 	}
 	Hooks struct {
 		PreAdd string
 	}
 	Web struct {
 		Static struct {
-			Port      int    `default:"4000"`
-			Interface string `default:"127.0.0.1"`
+			Port      int    `default:"4000" env:"WEB_PORT"`
+			Interface string `default:"127.0.0.1" env:"WEB_INTERFACE"`
 			Directory string `default:"portal/dist" env:"STATIC_DIR"`
 		}
 		API struct {
