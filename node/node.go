@@ -4,16 +4,19 @@ import (
 	"container/list"
 	"encoding/base64"
 	"errors"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/chain"
 	"github.com/u-speak/core/config"
 	d "github.com/u-speak/core/node/protoc"
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"io"
-	"net"
-	"strconv"
-	"time"
 )
 
 const (
@@ -29,6 +32,9 @@ type Node struct {
 	ListenInterface  string
 	Version          string
 	remoteInterfaces map[string]struct{}
+	Hooks            struct {
+		PreAdd string
+	}
 }
 
 type ChainStatus struct {
@@ -77,6 +83,7 @@ func New(c config.Configuration) (*Node, error) {
 		PostChain:        pc,
 		Version:          c.Version,
 		remoteInterfaces: make(map[string]struct{}),
+		Hooks:            c.Hooks,
 	}, nil
 }
 
@@ -270,12 +277,31 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 	}
+<<<<<<< HEAD
 	err := n.SmartAdd(b)
 	if err != nil {
 		log.Error(err)
 	} else {
 		return &d.PushReturn{}, nil
 	}
+=======
+	// PreAdd hook
+	if n.Hooks.PreAdd != "" {
+		u, err := url.Parse(n.Hooks.PreAdd)
+		if err != nil {
+			log.Errorf("Error running PreAdd hook: %s", err.Error())
+		}
+		q := u.Query()
+		q.Add("hash", base64.URLEncoding.EncodeToString(b.Hash().Bytes()))
+		u.RawQuery = q.Encode()
+		log.Debugf("Calling PreAdd Hook with URL: %s", u.String())
+		_, err = http.Get(u.String())
+		if err != nil {
+			log.Errorf("Error running PreAdd hook: %s", err.Error())
+		}
+	}
+	n.SmartAdd(b)
+>>>>>>> 19f941617b2e2fbb3d419f49be897918a840c5da
 	return &d.PushReturn{}, nil
 }
 
@@ -399,4 +425,7 @@ func dial(r string) (*grpc.ClientConn, error) {
 			grpc.MaxCallRecvMsgSize(MaxMsgSize),
 			grpc.MaxCallSendMsgSize(MaxMsgSize),
 		))
+}
+
+func runHook(s string) {
 }

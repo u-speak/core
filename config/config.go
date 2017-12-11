@@ -28,6 +28,9 @@ type Configuration struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`
 		Interface string `default:"127.0.0.1"`
 	}
+	Hooks struct {
+		PreAdd string
+	}
 	Web struct {
 		Static struct {
 			Port      int    `default:"4000"`
