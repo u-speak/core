@@ -277,15 +277,6 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 	}
-<<<<<<< HEAD
-	err := n.SmartAdd(b)
-	if err != nil {
-		log.Error(err)
-	} else {
-		return &d.PushReturn{}, nil
-	}
-=======
-	// PreAdd hook
 	if n.Hooks.PreAdd != "" {
 		u, err := url.Parse(n.Hooks.PreAdd)
 		if err != nil {
@@ -300,8 +291,12 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 			log.Errorf("Error running PreAdd hook: %s", err.Error())
 		}
 	}
-	n.SmartAdd(b)
->>>>>>> 19f941617b2e2fbb3d419f49be897918a840c5da
+	err := n.SmartAdd(b)
+	if err != nil {
+		log.Error(err)
+	} else {
+		return &d.PushReturn{}, nil
+	}
 	return &d.PushReturn{}, nil
 }
 
