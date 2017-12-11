@@ -222,6 +222,7 @@ func (n *Node) SmartAdd(b chain.Block) error {
 	switch b.Type {
 	case "post":
 		c = n.PostChain
+		log.Infof("Type post.")
 		if b.Hash() == c.LastHash() {
 			add = false
 		}
@@ -239,9 +240,12 @@ func (n *Node) SmartAdd(b chain.Block) error {
 	if !add {
 		return errors.New("Attempted to add an allready submitted block")
 	} else {
+		log.Infof("Pushing to network")
 		c.Add(b)
-		return nil
+		n.Push(&b)
 	}
+	return nil
+
 }
 
 // AddBlock receives a sent Block from other node or repl
@@ -258,25 +262,38 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		Nonce:     block.Nonce,
 	}
 
-	log.Debugf("Received Block with hash: %s", base64.URLEncoding.EncodeToString(b.Hash().Bytes()))
-	switch b.Type {
+		switch b.Type {
 	case "post":
+		if b.Hash() == n.PostChain.LastHash() {
+			return &d.PushReturn{}, nil
+		}
+
 		if p != n.PostChain.LastHash() {
+			log.Errorf("LastHash from Chain %v", n.PostChain.LastHash())
 			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 
 	case "image":
+		if b.Hash() == n.ImageChain.LastHash() {
+			return &d.PushReturn{}, nil
+		}
+
 		if p != n.ImageChain.LastHash() {
 			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 	case "key":
+		if b.Hash() == n.KeyChain.LastHash() {
+			return &d.PushReturn{}, nil
+		}
+
 		if p != n.KeyChain.LastHash() {
 			log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
 			return &d.PushReturn{}, errors.New("Received block had invalid previous hash")
 		}
 	}
+	log.Debugf("Received Block with hash: %v", b.Hash())
 	if n.Hooks.PreAdd != "" {
 		u, err := url.Parse(n.Hooks.PreAdd)
 		if err != nil {
@@ -291,12 +308,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 			log.Errorf("Error running PreAdd hook: %s", err.Error())
 		}
 	}
-	err := n.SmartAdd(b)
-	if err != nil {
-		log.Error(err)
-	} else {
-		return &d.PushReturn{}, nil
-	}
+	n.SmartAdd(b)
 	return &d.PushReturn{}, nil
 }
 
@@ -406,6 +418,37 @@ func (n *Node) SynchronizeChain(remote string) error {
 
 		log.Infof("Got a new Block: %v", b.Type)
 		log.Debugf("Received %+v", b)
+ switch b.Type {
+        case "post":
+                if b.Hash() == n.PostChain.LastHash() {
+                        return nil
+                }
+
+                if p != n.PostChain.LastHash() {
+                        log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
+                        return  errors.New("Received block had invalid previous hash")
+                }
+
+        case "image":
+                if b.Hash() == n.ImageChain.LastHash() {
+                        return nil
+                }
+
+                if p != n.ImageChain.LastHash() {
+                        log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
+                        return  errors.New("Received block had invalid previous hash")
+                }
+        case "key":
+                if b.Hash() == n.KeyChain.LastHash() {
+                        return  nil
+                }
+
+                if p != n.KeyChain.LastHash() {
+                        log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
+                        return  errors.New("Received block had invalid previous hash")
+                }
+        }
+
 		n.SmartAdd(b)
 	}
 	conn.Close()
