@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -143,9 +144,7 @@ func (n *Node) Run() {
 	log.Fatal(grpcServer.Serve(lis))
 }
 
-// Connect connects to a new remote
-func (n *Node) Connect(remote string) error {
-	time.Sleep(1000 * time.Millisecond)
+func (n *Node) connect(remote string) error {
 	if _, ok := n.remoteInterfaces[remote]; ok {
 		return errors.New("Attempted to add an allready established interface")
 	}
@@ -173,6 +172,28 @@ func (n *Node) Connect(remote string) error {
 		}
 	}
 	log.Infof("Added connection %s", remote)
+	return nil
+}
+
+// Connect connects to a new remote
+func (n *Node) Connect(r string) error {
+	s := strings.Split(r, ":")
+	port := s[1]
+	addr := s[0]
+	i, err := net.LookupIP(addr)
+	if err != nil {
+		return err
+	}
+	for _, ip := range i {
+		if ip.To4() != nil {
+			err := n.connect(ip.String() + ":" + port)
+			if err != nil {
+				log.Error(err)
+			}
+		} else {
+			log.Warn("Not using IPv6 as of now")
+		}
+	}
 	return nil
 }
 
@@ -262,7 +283,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		Nonce:     block.Nonce,
 	}
 
-		switch b.Type {
+	switch b.Type {
 	case "post":
 		if b.Hash() == n.PostChain.LastHash() {
 			return &d.PushReturn{}, nil
@@ -418,36 +439,36 @@ func (n *Node) SynchronizeChain(remote string) error {
 
 		log.Infof("Got a new Block: %v", b.Type)
 		log.Debugf("Received %+v", b)
- switch b.Type {
-        case "post":
-                if b.Hash() == n.PostChain.LastHash() {
-                        return nil
-                }
+		switch b.Type {
+		case "post":
+			if b.Hash() == n.PostChain.LastHash() {
+				return nil
+			}
 
-                if p != n.PostChain.LastHash() {
-                        log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
-                        return  errors.New("Received block had invalid previous hash")
-                }
+			if p != n.PostChain.LastHash() {
+				log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
+				return errors.New("Received block had invalid previous hash")
+			}
 
-        case "image":
-                if b.Hash() == n.ImageChain.LastHash() {
-                        return nil
-                }
+		case "image":
+			if b.Hash() == n.ImageChain.LastHash() {
+				return nil
+			}
 
-                if p != n.ImageChain.LastHash() {
-                        log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
-                        return  errors.New("Received block had invalid previous hash")
-                }
-        case "key":
-                if b.Hash() == n.KeyChain.LastHash() {
-                        return  nil
-                }
+			if p != n.ImageChain.LastHash() {
+				log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
+				return errors.New("Received block had invalid previous hash")
+			}
+		case "key":
+			if b.Hash() == n.KeyChain.LastHash() {
+				return nil
+			}
 
-                if p != n.KeyChain.LastHash() {
-                        log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
-                        return  errors.New("Received block had invalid previous hash")
-                }
-        }
+			if p != n.KeyChain.LastHash() {
+				log.Errorf("Tried to add invalid Block! Previous hash %v is not valid. Please synchronize the nodes", p)
+				return errors.New("Received block had invalid previous hash")
+			}
+		}
 
 		n.SmartAdd(b)
 	}

@@ -11,7 +11,7 @@ type Configuration struct {
 		SSLCert string
 		SSLKey  string
 		Message string `default:"a nice person"`
-		DNS     string `default:"uspeak.cubela.tech"`
+		DNS     string `default:"discovery.uspeak.io"`
 	}
 	Storage struct {
 		DiskStore struct {
