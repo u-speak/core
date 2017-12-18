@@ -236,7 +236,7 @@ func (n *Node) Push(b *chain.Block) error {
 }
 
 // SmartAdd Adds Blocks to the specified chain
-func (n *Node) SmartAdd(b chain.Block) error {
+func (n *Node) SmartAdd(b chain.Block, transitive bool) error {
 	var c *chain.Chain
 	var add bool
 	add = true
@@ -263,7 +263,9 @@ func (n *Node) SmartAdd(b chain.Block) error {
 	} else {
 		log.Infof("Pushing to network")
 		c.Add(b)
+	if transitive {
 		n.Push(&b)
+	}
 	}
 	return nil
 
@@ -329,7 +331,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 			log.Errorf("Error running PreAdd hook: %s", err.Error())
 		}
 	}
-	n.SmartAdd(b)
+	n.SmartAdd(b, true)
 	return &d.PushReturn{}, nil
 }
 
@@ -470,7 +472,7 @@ func (n *Node) SynchronizeChain(remote string) error {
 			}
 		}
 
-		n.SmartAdd(b)
+		n.SmartAdd(b, false)
 	}
 	conn.Close()
 	log.Infof("Synchronization finished successfully.")
