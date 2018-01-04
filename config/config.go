@@ -14,6 +14,7 @@ type Configuration struct {
 		DNS     string `default:"discovery.uspeak.io"`
 	}
 	Storage struct {
+		Method    string `default:"bolt"`
 		DiskStore struct {
 			ImageDir string `default:"/var/lib/uspeak/data/images" env:"IMAGE_PATH"`
 			KeyDir   string `default:"/var/lib/uspeak/data/keys" env:"KEY_PATH"`

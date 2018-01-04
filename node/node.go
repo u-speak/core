@@ -65,27 +65,48 @@ func validateAll(chain.Hash) bool {
 
 // New constructs a new node from the configuration
 func New(c config.Configuration) (*Node, error) {
-	ic, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.ImagePath}, validateAll)
-	if err != nil {
-		return nil, err
-	}
-	kc, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.KeyPath}, validateAll)
-	if err != nil {
-		return nil, err
-	}
-	pc, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.PostPath}, validateAll)
-	if err != nil {
-		return nil, err
-	}
-	return &Node{
+	n := &Node{
 		ListenInterface:  c.NodeNetwork.Interface + ":" + strconv.Itoa(c.NodeNetwork.Port),
-		ImageChain:       ic,
-		KeyChain:         kc,
-		PostChain:        pc,
 		Version:          c.Version,
 		remoteInterfaces: make(map[string]struct{}),
 		Hooks:            c.Hooks,
-	}, nil
+	}
+	log.Infof("Using storage method: %s", c.Storage.Method)
+	switch c.Storage.Method {
+	case "bolt":
+		ic, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.ImagePath}, validateAll)
+		if err != nil {
+			return nil, err
+		}
+		n.ImageChain = ic
+		kc, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.KeyPath}, validateAll)
+		if err != nil {
+			return nil, err
+		}
+		n.KeyChain = kc
+		pc, err := chain.New(&chain.BoltStore{Path: c.Storage.BoltStore.PostPath}, validateAll)
+		if err != nil {
+			return nil, err
+		}
+		n.PostChain = pc
+	case "disk":
+		ic, err := chain.New(&chain.DiskStore{Folder: c.Storage.DiskStore.ImageDir}, validateAll)
+		if err != nil {
+			return nil, err
+		}
+		n.ImageChain = ic
+		kc, err := chain.New(&chain.DiskStore{Folder: c.Storage.DiskStore.KeyDir}, validateAll)
+		if err != nil {
+			return nil, err
+		}
+		n.KeyChain = kc
+		pc, err := chain.New(&chain.DiskStore{Folder: c.Storage.DiskStore.PostDir}, validateAll)
+		if err != nil {
+			return nil, err
+		}
+		n.PostChain = pc
+	}
+	return n, nil
 }
 
 // encHash returns the String encoded Hash
@@ -263,9 +284,9 @@ func (n *Node) SmartAdd(b chain.Block, transitive bool) error {
 	} else {
 		log.Infof("Pushing to network")
 		c.Add(b)
-	if transitive {
-		n.Push(&b)
-	}
+		if transitive {
+			n.Push(&b)
+		}
 	}
 	return nil
 
