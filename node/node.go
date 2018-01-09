@@ -33,6 +33,7 @@ type Node struct {
 	ListenInterface  string
 	Version          string
 	remoteInterfaces map[string]struct{}
+	APIAddr          string
 	Hooks            struct {
 		PreAdd string
 	}
@@ -70,6 +71,7 @@ func New(c config.Configuration) (*Node, error) {
 		Version:          c.Version,
 		remoteInterfaces: make(map[string]struct{}),
 		Hooks:            c.Hooks,
+		APIAddr:          c.Web.API.PublicEndpoint,
 	}
 	log.Infof("Using storage method: %s", c.Storage.Method)
 	switch c.Storage.Method {
@@ -345,6 +347,7 @@ func (n *Node) AddBlock(ctx context.Context, block *d.Block) (*d.PushReturn, err
 		}
 		q := u.Query()
 		q.Add("hash", base64.URLEncoding.EncodeToString(b.Hash().Bytes()))
+		q.Add("pub", n.APIAddr)
 		u.RawQuery = q.Encode()
 		log.Debugf("Calling PreAdd Hook with URL: %s", u.String())
 		_, err = http.Get(u.String())
@@ -507,7 +510,4 @@ func dial(r string) (*grpc.ClientConn, error) {
 			grpc.MaxCallRecvMsgSize(MaxMsgSize),
 			grpc.MaxCallSendMsgSize(MaxMsgSize),
 		))
-}
-
-func runHook(s string) {
 }

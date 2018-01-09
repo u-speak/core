@@ -40,11 +40,12 @@ type Configuration struct {
 			Directory string `default:"portal/dist" env:"STATIC_DIR"`
 		}
 		API struct {
-			Port          int    `default:"3000" env:"API_PORT"`
-			Interface     string `default:"127.0.0.1"`
-			AdminEnabled  bool   `default:"false"`
-			AdminUser     string `default:"admin"`
-			AdminPassword string `default:"admin"`
+			Port           int    `default:"3000" env:"API_PORT"`
+			Interface      string `default:"127.0.0.1"`
+			PublicEndpoint string
+			AdminEnabled   bool   `default:"false"`
+			AdminUser      string `default:"admin"`
+			AdminPassword  string `default:"admin"`
 		}
 	}
 }

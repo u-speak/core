@@ -194,7 +194,7 @@ func (a *API) uploadImage(c echo.Context) error {
 	if buff.Len() >= node.MaxMsgSize {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Image to large, please compress it further or crop it", Code: http.StatusBadRequest})
 	}
-	bl.Content = string(buff.Bytes())
+	bl.Content = base64.URLEncoding.EncodeToString(buff.Bytes())
 	if bl.Hash() != rh {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash. Please recalculate the nonce", Code: http.StatusBadRequest})
 	}
