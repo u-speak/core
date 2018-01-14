@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"image/jpeg"
@@ -163,6 +164,10 @@ func (a *API) uploadImage(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: PrevHash", Code: http.StatusBadRequest})
 	}
+	ts, err := strconv.ParseInt(c.FormValue("timestamp"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: timestamp", Code: http.StatusBadRequest})
+	}
 	rh, err := decodeHash(c.FormValue("hash"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Hash", Code: http.StatusBadRequest})
@@ -171,7 +176,6 @@ func (a *API) uploadImage(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Nonce", Code: http.StatusBadRequest})
 	}
-	ts, err := strconv.ParseInt(nonce, 10, 64)
 	d := time.Unix(ts, 0)
 	bl := chain.Block{
 		Nonce:    uint32(n),
@@ -214,9 +218,10 @@ func (a *API) getImage(c echo.Context) error {
 	if ib == nil {
 		return c.JSON(http.StatusNotFound, Error{Message: "Image not found", Code: http.StatusNotFound})
 	}
-	br := bytes.NewBuffer([]byte(ib.Content))
-	img, _, err := image.Decode(br)
+	dr := base64.NewDecoder(base64.URLEncoding, strings.NewReader(ib.Content))
+	img, _, err := image.Decode(dr)
 	if err != nil {
+		log.Error(err)
 		return c.JSON(http.StatusBadRequest, Error{Message: "Could not process image", Code: http.StatusBadRequest})
 	}
 
