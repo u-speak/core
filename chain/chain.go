@@ -95,13 +95,13 @@ func (c *Chain) Length() uint64 {
 }
 
 // Latest returns the latest n blocks
-func (c *Chain) Latest(n int) ([]*Block, error) {
+func (c *Chain) Latest(n int, offset Hash) ([]*Block, error) {
 	if !c.Valid() {
 		return nil, ErrInvalidChain
 	}
-	b := c.Get(c.lastHash)
+	b := c.Get(offset)
 	bs := []*Block{b}
-	for i := 0; i < n; i++ {
+	for i := 0; i < n-1; i++ {
 		b = c.Get(b.PrevHash)
 		if b == nil {
 			break
