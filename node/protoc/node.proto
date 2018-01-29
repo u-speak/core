@@ -15,6 +15,11 @@ message StatusParams{
 message SyncParams{
   bytes LastHash = 1;
 }
+message NewBlock{
+string Content = 1;
+string FromNode = 2;
+Block b = 3;
+}
 
 message Block {
   string Content = 1;
@@ -29,8 +34,13 @@ message Block {
 message PushReturn {
 }
 
+message Additional {
+string From = 1;
+}
+
 service DistributionService {
   rpc GetInfo(Info) returns (Info) {}
   rpc Synchronize(SyncParams) returns (stream Block) {}
   rpc AddBlock(Block) returns (PushReturn) {}
+  rpc SendBlockMessage(Block) returns (PushReturn) {}
 }

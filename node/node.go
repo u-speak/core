@@ -223,6 +223,7 @@ func (n *Node) Connect(r string) error {
 // SubmitBlock is called whenever a new block is submitted to the network
 func (n *Node) SubmitBlock(b chain.Block) {
 	log.Infof("Pushing block %x to network", b.Hash())
+	n.PrePush(&b)
 	n.Push(&b)
 }
 
@@ -257,6 +258,7 @@ func (n *Node) Push(b *chain.Block) error {
 	}
 	return nil
 }
+
 
 // SmartAdd Adds Blocks to the specified chain
 func (n *Node) SmartAdd(b chain.Block, transitive bool) error {
@@ -511,3 +513,51 @@ func dial(r string) (*grpc.ClientConn, error) {
 			grpc.MaxCallSendMsgSize(MaxMsgSize),
 		))
 }
+
+//this function handles the beginning of the race condition
+
+func (n *Node) PrePush(b *chain.Block) error {
+        h := b.PrevHash
+	pb := &d.Block{
+                Content:   b.Content,
+                Nonce:     b.Nonce,
+                Previous:  h[:],
+                Signature: b.Signature,
+                Date:      b.Date.Unix(),
+                Type:      b.Type,
+                PubKey:    b.PubKey,
+        }
+
+        for r := range n.remoteInterfaces {
+                conn, err := dial(r)
+                if err != nil {
+                        continue
+                }
+                client := d.NewDistributionServiceClient(conn)
+                _, err = client.SendBlockMessage(context.Background(),  pb)
+                if err != nil {
+                        log.Error(err)
+                        return err
+                }
+        }
+        return nil
+}
+
+func (n *Node) SendBlockMessage(ctx context.Context, block *d.Block) (*d.PushReturn, error) {
+        var p [32]byte
+        copy(p[:], block.Previous)
+        b := chain.Block{
+                Content:   block.Content,
+                Type:      block.Type,
+                PubKey:    block.PubKey,
+                Date:      time.Unix(block.Date, 0),
+                Signature: block.Signature,
+                PrevHash:  p,
+                Nonce:     block.Nonce,
+        }
+log.Errorf("received prePush %+v, Timestamp %v", b.Content, b.Date)
+
+return &d.PushReturn{}, nil
+}
+
+
