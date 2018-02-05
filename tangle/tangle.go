@@ -1,5 +1,11 @@
 package tangle
 
+import (
+	"github.com/u-speak/core/tangle/hash"
+	"github.com/u-speak/core/tangle/store"
+	"github.com/u-speak/core/tangle/store/boltstore"
+)
+
 const (
 	// MinimumWeight for new Sites
 	MinimumWeight = 1
@@ -10,17 +16,18 @@ const (
 // Tangle stores the relation between different transactions
 type Tangle struct {
 	tips  map[*Site]bool
-	sites map[Hash]*Site
+	sites map[hash.Hash]*Site
+	store store.Store
 }
 
 // Init initializes the tangle with two genesis blocks
 func (t *Tangle) Init() error {
 	t.tips = make(map[*Site]bool)
-	t.sites = make(map[Hash]*Site)
+	t.sites = make(map[hash.Hash]*Site)
 	// Base64(Content) = GENESIS1
-	g1 := &Site{Content: Hash{24, 67, 68, 72, 132, 181}, Nonce: 373}
+	g1 := &Site{Content: hash.Hash{24, 67, 68, 72, 132, 181}, Nonce: 373}
 	// Base64(Content) = GENESIS2
-	g2 := &Site{Content: Hash{24, 67, 68, 72, 132, 182}, Nonce: 510}
+	g2 := &Site{Content: hash.Hash{24, 67, 68, 72, 132, 182}, Nonce: 510}
 	t.sites[g1.Hash()] = g1
 	t.sites[g2.Hash()] = g2
 	t.tips[g1] = true
@@ -71,7 +78,7 @@ func (t *Tangle) Tips() []*Site {
 }
 
 // Get retrieves the specified site
-func (t *Tangle) Get(h Hash) *Site {
+func (t *Tangle) Get(h hash.Hash) *Site {
 	return t.sites[h]
 }
 

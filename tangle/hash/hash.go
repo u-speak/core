@@ -1,4 +1,4 @@
-package tangle
+package hash
 
 import (
 	"encoding/base64"
@@ -27,4 +27,9 @@ func (h Hash) Weight() int {
 		}
 	}
 	return weight
+}
+
+// Slice converts the fixed length hash to a dynamic slice
+func (h Hash) Slice() []byte {
+	return h[:]
 }
