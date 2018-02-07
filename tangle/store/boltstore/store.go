@@ -32,7 +32,7 @@ func (b *BoltStore) Add(d *site.Site) error {
 }
 
 // Get retrieves data from the database
-func (b *BoltStore) Get(h hash.Hash) []byte {
+func (b *BoltStore) Get(h hash.Hash) *site.Site {
 	var d []byte
 	err := b.db.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(dataBucketName)
@@ -42,7 +42,9 @@ func (b *BoltStore) Get(h hash.Hash) []byte {
 	if err != nil {
 		log.Error(err)
 	}
-	return d
+	s := site.Site{}
+	s.Deserialize(d)
+	return &s
 }
 
 // Init the store
@@ -78,20 +80,18 @@ func (b *BoltStore) Close() {
 }
 
 // SetTips applies the delata of tips
-func (b *BoltStore) SetTips(add []hash.Hash, del []hash.Hash) {
+func (b *BoltStore) SetTips(add *site.Site, del []*site.Site) {
 	err := b.db.Update(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(tipBucketName)
 		for _, d := range del {
-			err := bkt.Delete(d.Slice())
+			err := bkt.Delete(d.Hash().Slice())
 			if err != nil {
 				return err
 			}
 		}
-		for _, a := range add {
-			err := bkt.Put(a.Slice(), []byte{})
-			if err != nil {
-				return err
-			}
+		err := bkt.Put(add.Hash().Slice(), []byte{})
+		if err != nil {
+			return err
 		}
 		return nil
 	})
@@ -112,4 +112,15 @@ func (b *BoltStore) GetTips() []hash.Hash {
 		return nil
 	})
 	return tips
+}
+
+// Size returns the count of elements in the data bucket
+func (b *BoltStore) Size() int {
+	var n int
+	_ = b.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(dataBucketName)
+		n = bkt.Stats().KeyN
+		return nil
+	})
+	return n
 }
