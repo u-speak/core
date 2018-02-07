@@ -2,21 +2,23 @@ package store
 
 import (
 	"github.com/u-speak/core/tangle/hash"
+	"github.com/u-speak/core/tangle/site"
 )
-
-// Serializable structs can be turned into slices and also be recovered from them
-type Serializable interface {
-	Serialize() []byte
-	Deserialize([]byte) error
-	Hash() hash.Hash
-}
 
 // Store is a persistant datastore
 type Store interface {
-	Add(Serializable) error
-	Get(hash.Hash) []byte
+	Add(*site.Site) error
+	Get(hash.Hash) *site.Site
 	Init(Options) error
+	SetTips(*site.Site, []*site.Site)
+	GetTips() []hash.Hash
+	Size() int
 	Close()
+}
+
+// Empty checks whether this store has been used before
+func Empty(s Store) bool {
+	return len(s.GetTips()) == 0
 }
 
 // Options for the store, used at initialization

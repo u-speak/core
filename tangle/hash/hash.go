@@ -33,3 +33,10 @@ func (h Hash) Weight() int {
 func (h Hash) Slice() []byte {
 	return h[:]
 }
+
+// FromSlice turns a byte slice into a hash
+func FromSlice(s []byte) Hash {
+	h := Hash{}
+	copy(h[:], s)
+	return h
+}
