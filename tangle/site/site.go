@@ -1,11 +1,9 @@
 package site
 
 import (
-	"bytes"
 	"golang.org/x/crypto/blake2s"
-	"text/template"
+	"strconv"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/tangle/hash"
 	"github.com/vmihailenco/msgpack"
 )
@@ -19,13 +17,11 @@ type Site struct {
 
 // Hash computes the hash of the site
 func (s *Site) Hash() hash.Hash {
-	t := template.Must(template.New("site").Parse("C{{.Content}}N{{.Nonce}}{{range $k,$s := .Validates}}V{{$s.Hash}}{{end}}"))
-	w := &bytes.Buffer{}
-	err := t.Execute(w, s)
-	if err != nil {
-		log.Error(err)
+	ts := "C" + s.Content.String() + "N" + strconv.FormatUint(s.Nonce, 10)
+	for _, s := range s.Validates {
+		ts += "V" + s.Hash().String()
 	}
-	return blake2s.Sum256(w.Bytes())
+	return blake2s.Sum256([]byte(ts))
 }
 
 // Serialize converts the site to a slice of bytes
@@ -39,7 +35,8 @@ func (s *Site) Deserialize(b []byte) error {
 	return msgpack.Unmarshal(b, s)
 }
 
-func (s *Site) mine(targetWeight int) {
+// Mine the block for a specifig weight
+func (s *Site) Mine(targetWeight int) {
 	for s.Hash().Weight() < targetWeight {
 		s.Nonce++
 	}
