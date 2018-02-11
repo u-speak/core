@@ -41,3 +41,7 @@ func (s *Site) Mine(targetWeight int) {
 		s.Nonce++
 	}
 }
+
+func (s *Site) String() string {
+	return s.Content.String()
+}

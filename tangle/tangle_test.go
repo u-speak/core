@@ -84,5 +84,55 @@ func TestRestore(t *testing.T) {
 	tngl2 := Tangle{}
 	err = tngl2.Init(Options{Store: &bs2})
 	assert.Equal(t, tips, tngl2.Tips())
+	os.Remove(path.Join(os.TempDir(), "testRestore.db"))
+}
 
+func TestWeight(t *testing.T) {
+	tngl := Tangle{}
+	err := tngl.Init(Options{Store: ms()})
+	assert.NoError(t, err)
+	tips := tngl.Tips()
+	gen1, gen2 := tips[0], tips[1]
+	s1 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 53}, Nonce: 0, Validates: []*site.Site{gen1, gen2}}
+	s2 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 54}, Nonce: 0, Validates: []*site.Site{s1, gen2}}
+	s3 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 55}, Nonce: 0, Validates: []*site.Site{s2, s1}}
+	s4 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 56}, Nonce: 0, Validates: []*site.Site{s3, s2}}
+	s1.Mine(1)
+	s2.Mine(1)
+	s3.Mine(1)
+	s4.Mine(1)
+	assert.NoError(t, tngl.Add(s1))
+	assert.NoError(t, tngl.Add(s2))
+	assert.NoError(t, tngl.Add(s3))
+	assert.NoError(t, tngl.Add(s4))
+	assert.EqualValues(t, 6, tngl.Size())
+	tngl.weight(s2)
+	assert.EqualValues(t, s4.Hash().Weight(), tngl.weight(s4))
+	assert.EqualValues(t, s4.Hash().Weight()+s3.Hash().Weight(), tngl.weight(s3))
+	assert.EqualValues(t, s4.Hash().Weight()+s3.Hash().Weight()+s2.Hash().Weight(), tngl.weight(s2))
+	assert.EqualValues(t, s4.Hash().Weight()+s3.Hash().Weight()+s2.Hash().Weight()+s1.Hash().Weight(), tngl.weight(s1))
+}
+
+func BenchmarkWeight(b *testing.B) {
+	tngl := Tangle{}
+	err := tngl.Init(Options{Store: ms()})
+	assert.NoError(b, err)
+	tips := tngl.Tips()
+	gen1, gen2 := tips[0], tips[1]
+	s1 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 53}, Nonce: 0, Validates: []*site.Site{gen1, gen2}}
+	s2 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 54}, Nonce: 0, Validates: []*site.Site{s1, gen2}}
+	s3 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 55}, Nonce: 0, Validates: []*site.Site{s2, s1}}
+	s4 := &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 56}, Nonce: 0, Validates: []*site.Site{s3, s2}}
+	s1.Mine(1)
+	s2.Mine(1)
+	s3.Mine(1)
+	s4.Mine(1)
+	assert.NoError(b, tngl.Add(s1))
+	assert.NoError(b, tngl.Add(s2))
+	assert.NoError(b, tngl.Add(s3))
+	assert.NoError(b, tngl.Add(s4))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tngl.weight(s1)
+	}
 }

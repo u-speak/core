@@ -33,7 +33,6 @@ func (t *Tangle) Init(o Options) error {
 	t.sites = make(map[hash.Hash]*site.Site)
 	t.store = o.Store
 	if store.Empty(t.store) {
-		log.Info("Initializing new Tangle")
 		gen1 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 181}, Nonce: 373}
 		gen2 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 182}, Nonce: 510}
 		err := t.store.Add(gen1)
@@ -46,8 +45,6 @@ func (t *Tangle) Init(o Options) error {
 		}
 		t.store.SetTips(gen1, nil)
 		t.store.SetTips(gen2, nil)
-	} else {
-		log.Info("Restoring Tangle")
 	}
 	for _, tip := range t.store.GetTips() {
 		t.tips[t.store.Get(tip)] = true
@@ -110,6 +107,60 @@ func (t *Tangle) Close() {
 
 func (t *Tangle) hasTip(s *site.Site) bool {
 	return t.tips[s]
+}
+
+func (t *Tangle) weight(s *site.Site) int {
+	bound := make(map[*site.Site]bool)
+	// Setting up exclusion list
+	excl := make(map[*site.Site]bool)
+
+	inject := func(l []*site.Site) {
+		for _, v := range l {
+			bound[v] = true
+		}
+	}
+
+	inject(s.Validates)
+	for len(bound) != 0 {
+		for st := range bound {
+			delete(bound, st)
+			excl[st] = true
+			for _, v := range st.Validates {
+				if !excl[v] {
+					bound[v] = true
+				}
+			}
+		}
+	}
+	// Calculating weight
+	rvl := make(map[*site.Site][]*site.Site)
+	inject(t.Tips())
+	for len(bound) != 0 {
+		for st := range bound {
+			delete(bound, st)
+			for _, v := range st.Validates {
+				if !excl[v] {
+					bound[v] = true
+					rvl[v] = append(rvl[v], st)
+				}
+			}
+		}
+	}
+	w := s.Hash().Weight()
+	inject(rvl[s])
+	for len(bound) != 0 {
+		for st := range bound {
+			delete(bound, st)
+			excl[st] = true
+			w += st.Hash().Weight()
+			for _, v := range rvl[st] {
+				if !excl[v] {
+					bound[v] = true
+				}
+			}
+		}
+	}
+	return w
 }
 
 func (t *Tangle) verifySite(s *site.Site) error {
