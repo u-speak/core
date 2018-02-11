@@ -103,6 +103,11 @@ func (t *Tangle) Get(h hash.Hash) *site.Site {
 	return t.store.Get(h)
 }
 
+// Close closes the underlying store
+func (t *Tangle) Close() {
+	t.store.Close()
+}
+
 func (t *Tangle) hasTip(s *site.Site) bool {
 	return t.tips[s]
 }

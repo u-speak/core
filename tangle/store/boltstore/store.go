@@ -49,7 +49,7 @@ func (b *BoltStore) Get(h hash.Hash) *site.Site {
 
 // Init the store
 func (b *BoltStore) Init(o store.Options) error {
-	db, err := bolt.Open(o.Path, 0444, nil)
+	db, err := bolt.Open(o.Path, 0644, nil)
 	if err != nil {
 		return err
 	}
