@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/u-speak/core/node/tangle"
 	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/chain"
 	"github.com/u-speak/core/config"
@@ -27,9 +28,7 @@ const (
 
 // Node is a wrapper around the chain. Nodes are the backbone of the network
 type Node struct {
-	PostChain        *chain.Chain
-	ImageChain       *chain.Chain
-	KeyChain         *chain.Chain
+	PostChain        *tangle.Tangle
 	ListenInterface  string
 	Version          string
 	remoteInterfaces map[string]struct{}
@@ -39,17 +38,6 @@ type Node struct {
 	}
 }
 
-type ChainStatus struct {
-	Valid    bool   `json:"valid"`
-	Length   uint64 `json:"length"`
-	LastHash string `json:"last_hash"`
-}
-
-type ChainStatusList struct {
-	Post  ChainStatus `json:"post"`
-	Image ChainStatus `json:"image"`
-	Key   ChainStatus `json:"key"`
-}
 
 // Status is used for reporting this nodes configuration to other nodes
 type Status struct {
@@ -57,7 +45,7 @@ type Status struct {
 	Version     string          `json:"version"`
 	Length      uint64          `json:"length"`
 	Connections []string        `json:"connections"`
-	Chains      ChainStatusList `json:"chains"`
+	Chains      ChainStatusList `json:"chains"` //??
 }
 
 func validateAll(chain.Hash) bool {
