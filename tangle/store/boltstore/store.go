@@ -19,6 +19,12 @@ type BoltStore struct {
 	db *bolt.DB
 }
 
+// New returns a fresh initialized store
+func New(o store.Options) (*BoltStore, error) {
+	s := &BoltStore{}
+	return s, s.Init(o)
+}
+
 // Add stores the data in the database
 func (b *BoltStore) Add(d *site.Site) error {
 	err := b.db.Update(func(tx *bolt.Tx) error {

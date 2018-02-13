@@ -1,6 +1,8 @@
 package tangle
 
 import (
+	"github.com/u-speak/core/post"
+	"github.com/u-speak/core/tangle/datastore"
 	"github.com/u-speak/core/tangle/hash"
 	"github.com/u-speak/core/tangle/site"
 	"github.com/u-speak/core/tangle/store"
@@ -20,11 +22,29 @@ type Tangle struct {
 	tips  map[*site.Site]bool
 	sites map[hash.Hash]*site.Site
 	store store.Store
+	data  *datastore.Store
 }
 
 // Options are used for initial configuration
 type Options struct {
-	Store store.Store
+	Store    store.Store
+	DataPath string
+}
+
+// Object is the exposed site including the content
+type Object struct {
+	Site *site.Site
+	Data datastore.Serializable
+}
+
+// New returns a fresh initialized tangle
+func New(o Options) (*Tangle, error) {
+	ds, err := datastore.New(o.DataPath)
+	if err != nil {
+		return nil, err
+	}
+	t := &Tangle{data: ds}
+	return t, t.Init(o)
 }
 
 // Init initializes the tangle with two genesis blocks
@@ -33,8 +53,8 @@ func (t *Tangle) Init(o Options) error {
 	t.sites = make(map[hash.Hash]*site.Site)
 	t.store = o.Store
 	if store.Empty(t.store) {
-		gen1 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 181}, Nonce: 373}
-		gen2 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 182}, Nonce: 510}
+		gen1 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 181}, Nonce: 373, Type: "genesis"}
+		gen2 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 182}, Nonce: 510, Type: "genesis"}
 		err := t.store.Add(gen1)
 		if err != nil {
 			return err
@@ -56,13 +76,13 @@ func (t *Tangle) Init(o Options) error {
 // to be valid, a site has to:
 // * Validate at least one tip
 // * Have a weight of at least MinimumWeight
-func (t *Tangle) Add(s *site.Site) error {
-	err := t.verifySite(s)
+func (t *Tangle) Add(s *Object) error {
+	err := t.verifySite(s.Site)
 	if err != nil {
 		return err
 	}
 	v := func() bool {
-		for _, v := range s.Validates {
+		for _, v := range s.Site.Validates {
 			if t.hasTip(v) {
 				return true
 			}
@@ -72,13 +92,12 @@ func (t *Tangle) Add(s *site.Site) error {
 	if !v {
 		return ErrNotValidating
 	}
-	for _, vs := range s.Validates {
+	for _, vs := range s.Site.Validates {
 		delete(t.tips, vs)
 	}
-	t.tips[s] = true
-	t.store.SetTips(s, s.Validates)
-	t.addSite(s)
-	return nil
+	t.tips[s.Site] = true
+	t.store.SetTips(s.Site, s.Site.Validates)
+	return t.addSite(s)
 }
 
 // Size returns the amount of sites in the tangle
@@ -96,13 +115,41 @@ func (t *Tangle) Tips() []*site.Site {
 }
 
 // Get retrieves the specified site
-func (t *Tangle) Get(h hash.Hash) *site.Site {
-	return t.store.Get(h)
+func (t *Tangle) Get(h hash.Hash) *Object {
+	md := t.store.Get(h)
+	if md == nil {
+		return nil
+	}
+	var data datastore.Serializable
+	switch md.Type {
+	case "post":
+		p := &post.Post{}
+		err := t.data.Get(p, md.Content)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+		data = p
+	case "genesis":
+		data = nil
+	case "dummy":
+		d := &dummydata{}
+		err := t.data.Get(d, md.Content)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+		data = d
+	default:
+		log.Errorf("Type `%s' not implemented", md.Type)
+	}
+	return &Object{Site: md, Data: data}
 }
 
 // Close closes the underlying store
 func (t *Tangle) Close() {
 	t.store.Close()
+	t.data.Close()
 }
 
 func (t *Tangle) hasTip(s *site.Site) bool {
@@ -173,9 +220,14 @@ func (t *Tangle) verifySite(s *site.Site) error {
 	return nil
 }
 
-func (t *Tangle) addSite(s *site.Site) {
-	err := t.store.Add(s)
+func (t *Tangle) addSite(s *Object) error {
+	err := t.store.Add(s.Site)
 	if err != nil {
-		log.Error(err)
+		return err
 	}
+	err = t.data.Put(s.Data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
