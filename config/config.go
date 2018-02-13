@@ -25,6 +25,8 @@ type Configuration struct {
 			KeyPath   string `default:"/var/lib/uspeak/data/key.db" env:"KEY_PATH"`
 			PostPath  string `default:"/var/lib/uspeak/data/post.db" env:"POST_PATH"`
 		}
+		DataPath   string `default:"/var/lib/uspeak/data.db" env:"DATA_PATH"`
+		TanglePath string `default:"/var/lib/uspeak/tangle.db" env:"TANGLE_PATH"`
 	}
 	NodeNetwork struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`

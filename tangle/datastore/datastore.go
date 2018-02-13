@@ -1,6 +1,8 @@
 package datastore
 
 import (
+	"errors"
+
 	"github.com/coreos/bbolt"
 	"github.com/u-speak/core/tangle/hash"
 )
@@ -39,6 +41,9 @@ func New(path string) (*Store, error) {
 
 // Put stores the serialized element in the database
 func (s *Store) Put(e Serializable) error {
+	if e == nil {
+		return errors.New("element must not be nil")
+	}
 	h, err := e.Hash()
 	if err != nil {
 		return err
@@ -63,4 +68,9 @@ func (s *Store) Get(dest Serializable, h hash.Hash) error {
 		return err
 	}
 	return dest.Deserialize(buff)
+}
+
+// Close closes the db connection
+func (s *Store) Close() {
+	_ = s.db.Close()
 }
