@@ -50,7 +50,9 @@ func TestAdd(t *testing.T) {
 	tips := tngl.Tips()
 	err = tngl.Add(&site.Site{Content: hash.Hash{1, 3, 3, 7}, Nonce: 0})
 	assert.Equal(t, ErrWeightTooLow, err)
-	err = tngl.Add(&site.Site{Content: hash.Hash{1, 3, 3, 7}, Nonce: 263})
+	st := &site.Site{Content: hash.Hash{1, 3, 3, 7}}
+	st.Mine(1)
+	err = tngl.Add(st)
 	assert.Equal(t, ErrTooFewValidations, err)
 
 	sub := &site.Site{Content: hash.Hash{1, 3, 3, 7}, Nonce: 0, Validates: []*site.Site{tips[0], tips[1]}}

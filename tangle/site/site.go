@@ -13,11 +13,12 @@ type Site struct {
 	Validates []*Site
 	Nonce     uint64
 	Content   hash.Hash
+	Type      string
 }
 
 // Hash computes the hash of the site
 func (s *Site) Hash() hash.Hash {
-	ts := "C" + s.Content.String() + "N" + strconv.FormatUint(s.Nonce, 10)
+	ts := "C" + s.Content.String() + "N" + strconv.FormatUint(s.Nonce, 10) + "T" + s.Type
 	for _, s := range s.Validates {
 		ts += "V" + s.Hash().String()
 	}
@@ -40,8 +41,4 @@ func (s *Site) Mine(targetWeight int) {
 	for s.Hash().Weight() < targetWeight {
 		s.Nonce++
 	}
-}
-
-func (s *Site) String() string {
-	return s.Content.String()
 }

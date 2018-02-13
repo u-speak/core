@@ -27,6 +27,12 @@ type Options struct {
 	Store store.Store
 }
 
+// New returns a fresh initialized tangle
+func New(o Options) (*Tangle, error) {
+	t := &Tangle{}
+	return t, t.Init(o)
+}
+
 // Init initializes the tangle with two genesis blocks
 func (t *Tangle) Init(o Options) error {
 	t.tips = make(map[*site.Site]bool)
