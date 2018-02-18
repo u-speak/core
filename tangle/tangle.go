@@ -254,11 +254,11 @@ func (t *Tangle) Inject(s *Object, tip bool) error {
 }
 
 func (t *Tangle) verifySite(s *site.Site) error {
-	if len(s.Validates) < MinimumValidations {
-		return ErrTooFewValidations
-	}
 	if s.Hash().Weight() < MinimumWeight {
 		return ErrWeightTooLow
+	}
+	if len(s.Validates) < MinimumValidations {
+		return ErrTooFewValidations
 	}
 	return nil
 }

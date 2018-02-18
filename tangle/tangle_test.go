@@ -101,10 +101,18 @@ func TestWeight(t *testing.T) {
 	assert.NoError(t, err)
 	tips := tngl.Tips()
 	gen1, gen2 := tips[0], tips[1]
-	s1 := &Object{Site: &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 53}, Nonce: 0, Validates: []*site.Site{gen1, gen2}}, Data: dd("s1")}
-	s2 := &Object{Site: &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 54}, Nonce: 0, Validates: []*site.Site{s1.Site, gen2}}, Data: dd("s2")}
-	s3 := &Object{Site: &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 55}, Nonce: 0, Validates: []*site.Site{s2.Site, s1.Site}}, Data: dd("s3")}
-	s4 := &Object{Site: &site.Site{Content: hash.Hash{72, 132, 196, 211, 77, 56}, Nonce: 0, Validates: []*site.Site{s3.Site, s2.Site}}, Data: dd("s4")}
+	s1d := dd("s1")
+	s2d := dd("s2")
+	s3d := dd("s3")
+	s4d := dd("s4")
+	s1dh, _ := s1d.Hash()
+	s2dh, _ := s2d.Hash()
+	s3dh, _ := s3d.Hash()
+	s4dh, _ := s4d.Hash()
+	s1 := &Object{Site: &site.Site{Content: s1dh, Nonce: 0, Type: "dummy", Validates: []*site.Site{gen1, gen2}}, Data: s1d}
+	s2 := &Object{Site: &site.Site{Content: s2dh, Nonce: 0, Type: "dummy", Validates: []*site.Site{s1.Site, gen2}}, Data: s2d}
+	s3 := &Object{Site: &site.Site{Content: s3dh, Nonce: 0, Type: "dummy", Validates: []*site.Site{s2.Site, s1.Site}}, Data: s3d}
+	s4 := &Object{Site: &site.Site{Content: s4dh, Nonce: 0, Type: "dummy", Validates: []*site.Site{s3.Site, s2.Site}}, Data: s4d}
 	s1.Site.Mine(1)
 	s2.Site.Mine(1)
 	s3.Site.Mine(1)
