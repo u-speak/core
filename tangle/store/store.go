@@ -10,8 +10,9 @@ type Store interface {
 	Add(*site.Site) error
 	Get(hash.Hash) *site.Site
 	Init(Options) error
-	SetTips(*site.Site, []*site.Site)
+	SetTips(hash.Hash, []*site.Site)
 	GetTips() []hash.Hash
+	Hashes() []hash.Hash
 	Size() int
 	Close()
 }

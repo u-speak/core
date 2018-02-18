@@ -48,8 +48,15 @@ func (b *BoltStore) Get(h hash.Hash) *site.Site {
 	if err != nil {
 		log.Error(err)
 	}
+	if d == nil {
+		return nil
+	}
 	s := site.Site{}
-	s.Deserialize(d)
+	err = s.Deserialize(d)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
 	return &s
 }
 
@@ -86,7 +93,7 @@ func (b *BoltStore) Close() {
 }
 
 // SetTips applies the delata of tips
-func (b *BoltStore) SetTips(add *site.Site, del []*site.Site) {
+func (b *BoltStore) SetTips(add hash.Hash, del []*site.Site) {
 	err := b.db.Update(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(tipBucketName)
 		for _, d := range del {
@@ -95,7 +102,7 @@ func (b *BoltStore) SetTips(add *site.Site, del []*site.Site) {
 				return err
 			}
 		}
-		err := bkt.Put(add.Hash().Slice(), []byte{})
+		err := bkt.Put(add.Slice(), []byte{})
 		if err != nil {
 			return err
 		}
@@ -129,4 +136,18 @@ func (b *BoltStore) Size() int {
 		return nil
 	})
 	return n
+}
+
+// Hashes returns all stored hashes
+func (b *BoltStore) Hashes() []hash.Hash {
+	hs := []hash.Hash{}
+	_ = b.db.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(dataBucketName)
+		_ = bkt.ForEach(func(k, _ []byte) error {
+			hs = append(hs, hash.FromSlice(k))
+			return nil
+		})
+		return nil
+	})
+	return hs
 }

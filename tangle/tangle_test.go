@@ -62,9 +62,9 @@ func TestAdd(t *testing.T) {
 	sub.Site.Mine(1)
 	err = tngl.Add(sub)
 	assert.NoError(t, err)
-	assert.False(t, tngl.tips[tips[0]])
-	assert.False(t, tngl.tips[tips[1]])
-	assert.True(t, tngl.tips[sub.Site])
+	assert.False(t, tngl.tips[tips[0].Hash()])
+	assert.False(t, tngl.tips[tips[1].Hash()])
+	assert.True(t, tngl.tips[sub.Site.Hash()])
 	assert.Equal(t, sub, tngl.Get(sub.Site.Hash()))
 }
 
@@ -114,11 +114,11 @@ func TestWeight(t *testing.T) {
 	assert.NoError(t, tngl.Add(s3))
 	assert.NoError(t, tngl.Add(s4))
 	assert.EqualValues(t, 6, tngl.Size())
-	tngl.weight(s2.Site)
-	assert.EqualValues(t, s4.Site.Hash().Weight(), tngl.weight(s4.Site))
-	assert.EqualValues(t, s4.Site.Hash().Weight()+s3.Site.Hash().Weight(), tngl.weight(s3.Site))
-	assert.EqualValues(t, s4.Site.Hash().Weight()+s3.Site.Hash().Weight()+s2.Site.Hash().Weight(), tngl.weight(s2.Site))
-	assert.EqualValues(t, s4.Site.Hash().Weight()+s3.Site.Hash().Weight()+s2.Site.Hash().Weight()+s1.Site.Hash().Weight(), tngl.weight(s1.Site))
+	tngl.Weight(s2.Site)
+	assert.EqualValues(t, s4.Site.Hash().Weight(), tngl.Weight(s4.Site))
+	assert.EqualValues(t, s4.Site.Hash().Weight()+s3.Site.Hash().Weight(), tngl.Weight(s3.Site))
+	assert.EqualValues(t, s4.Site.Hash().Weight()+s3.Site.Hash().Weight()+s2.Site.Hash().Weight(), tngl.Weight(s2.Site))
+	assert.EqualValues(t, s4.Site.Hash().Weight()+s3.Site.Hash().Weight()+s2.Site.Hash().Weight()+s1.Site.Hash().Weight(), tngl.Weight(s1.Site))
 }
 
 func BenchmarkWeight(b *testing.B) {
@@ -141,6 +141,6 @@ func BenchmarkWeight(b *testing.B) {
 	assert.NoError(b, tngl.Add(&Object{Site: s4, Data: dd("s4")}))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tngl.weight(s1)
+		tngl.Weight(s1)
 	}
 }

@@ -31,11 +31,11 @@ func (m *MemoryStore) Get(h hash.Hash) *site.Site {
 }
 
 // SetTips applies the delta
-func (m *MemoryStore) SetTips(add *site.Site, del []*site.Site) {
+func (m *MemoryStore) SetTips(add hash.Hash, del []*site.Site) {
 	for _, d := range del {
 		delete(m.tips, d.Hash())
 	}
-	m.tips[add.Hash()] = true
+	m.tips[add] = true
 }
 
 // GetTips returns the tips
@@ -53,4 +53,13 @@ func (m *MemoryStore) Close() {}
 // Size returns the len of the data
 func (m *MemoryStore) Size() int {
 	return len(m.data)
+}
+
+// Hashes returns all stored hashes
+func (m *MemoryStore) Hashes() []hash.Hash {
+	hs := []hash.Hash{}
+	for k := range m.data {
+		hs = append(hs, k)
+	}
+	return hs
 }

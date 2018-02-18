@@ -1,6 +1,8 @@
 package tangle
 
 import (
+	"math/rand"
+
 	"github.com/u-speak/core/post"
 	"github.com/u-speak/core/tangle/datastore"
 	"github.com/u-speak/core/tangle/hash"
@@ -15,12 +17,13 @@ const (
 	MinimumWeight = 1
 	// MinimumValidations specifies how many sites must be verified by a new site
 	MinimumValidations = 2
+	// MaxRecommendations specifies how many sites can be returned by RecommendTips
+	MaxRecommendations = 4
 )
 
 // Tangle stores the relation between different transactions
 type Tangle struct {
-	tips  map[*site.Site]bool
-	sites map[hash.Hash]*site.Site
+	tips  map[hash.Hash]bool
 	store store.Store
 	data  *datastore.Store
 }
@@ -49,8 +52,7 @@ func New(o Options) (*Tangle, error) {
 
 // Init initializes the tangle with two genesis blocks
 func (t *Tangle) Init(o Options) error {
-	t.tips = make(map[*site.Site]bool)
-	t.sites = make(map[hash.Hash]*site.Site)
+	t.tips = make(map[hash.Hash]bool)
 	t.store = o.Store
 	if store.Empty(t.store) {
 		gen1 := &site.Site{Content: hash.Hash{24, 67, 68, 72, 132, 181}, Nonce: 373, Type: "genesis"}
@@ -63,11 +65,11 @@ func (t *Tangle) Init(o Options) error {
 		if err != nil {
 			return err
 		}
-		t.store.SetTips(gen1, nil)
-		t.store.SetTips(gen2, nil)
+		t.store.SetTips(gen1.Hash(), nil)
+		t.store.SetTips(gen2.Hash(), nil)
 	}
 	for _, tip := range t.store.GetTips() {
-		t.tips[t.store.Get(tip)] = true
+		t.tips[tip] = true
 	}
 	return nil
 }
@@ -83,7 +85,7 @@ func (t *Tangle) Add(s *Object) error {
 	}
 	v := func() bool {
 		for _, v := range s.Site.Validates {
-			if t.hasTip(v) {
+			if t.HasTip(v.Hash()) {
 				return true
 			}
 		}
@@ -92,12 +94,7 @@ func (t *Tangle) Add(s *Object) error {
 	if !v {
 		return ErrNotValidating
 	}
-	for _, vs := range s.Site.Validates {
-		delete(t.tips, vs)
-	}
-	t.tips[s.Site] = true
-	t.store.SetTips(s.Site, s.Site.Validates)
-	return t.addSite(s)
+	return t.addSite(s, true)
 }
 
 // Size returns the amount of sites in the tangle
@@ -108,8 +105,11 @@ func (t *Tangle) Size() int {
 // Tips returns a list of unconfirmed tips
 func (t *Tangle) Tips() []*site.Site {
 	keys := []*site.Site{}
-	for s := range t.tips {
-		keys = append(keys, s)
+	for h := range t.tips {
+		s := t.Get(h)
+		if s != nil {
+			keys = append(keys, s.Site)
+		}
 	}
 	return keys
 }
@@ -142,6 +142,7 @@ func (t *Tangle) Get(h hash.Hash) *Object {
 		data = d
 	default:
 		log.Errorf("Type `%s' not implemented", md.Type)
+		return nil
 	}
 	return &Object{Site: md, Data: data}
 }
@@ -152,14 +153,16 @@ func (t *Tangle) Close() {
 	t.data.Close()
 }
 
-func (t *Tangle) hasTip(s *site.Site) bool {
-	return t.tips[s]
+// HasTip checks if the specified hash is a tip of the current tangle
+func (t *Tangle) HasTip(h hash.Hash) bool {
+	return t.tips[h]
 }
 
-func (t *Tangle) weight(s *site.Site) int {
+// Weight returns the weight of a specific site inside the tangle
+func (t *Tangle) Weight(s *site.Site) int {
 	bound := make(map[*site.Site]bool)
 	// Setting up exclusion list
-	excl := make(map[*site.Site]bool)
+	excl := make(map[hash.Hash]bool)
 
 	inject := func(l []*site.Site) {
 		for _, v := range l {
@@ -171,37 +174,37 @@ func (t *Tangle) weight(s *site.Site) int {
 	for len(bound) != 0 {
 		for st := range bound {
 			delete(bound, st)
-			excl[st] = true
+			excl[st.Hash()] = true
 			for _, v := range st.Validates {
-				if !excl[v] {
+				if !excl[v.Hash()] {
 					bound[v] = true
 				}
 			}
 		}
 	}
 	// Calculating weight
-	rvl := make(map[*site.Site][]*site.Site)
+	rvl := make(map[hash.Hash][]*site.Site)
 	inject(t.Tips())
 	for len(bound) != 0 {
 		for st := range bound {
 			delete(bound, st)
 			for _, v := range st.Validates {
-				if !excl[v] {
+				if !excl[v.Hash()] {
 					bound[v] = true
-					rvl[v] = append(rvl[v], st)
+					rvl[v.Hash()] = append(rvl[v.Hash()], st)
 				}
 			}
 		}
 	}
 	w := s.Hash().Weight()
-	inject(rvl[s])
+	inject(rvl[s.Hash()])
 	for len(bound) != 0 {
 		for st := range bound {
 			delete(bound, st)
-			excl[st] = true
+			excl[st.Hash()] = true
 			w += st.Hash().Weight()
-			for _, v := range rvl[st] {
-				if !excl[v] {
+			for _, v := range rvl[st.Hash()] {
+				if !excl[v.Hash()] {
 					bound[v] = true
 				}
 			}
@@ -210,17 +213,65 @@ func (t *Tangle) weight(s *site.Site) int {
 	return w
 }
 
-func (t *Tangle) verifySite(s *site.Site) error {
-	if s.Hash().Weight() < MinimumWeight {
-		return ErrWeightTooLow
+// Hashes returns all stored hashes
+func (t *Tangle) Hashes() []hash.Hash {
+	return t.store.Hashes()
+}
+
+// RecommendTips returns tips to be used
+func (t *Tangle) RecommendTips() []*site.Site {
+	recs := t.Tips()
+	if len(recs) > MinimumValidations {
+		return recs[:MaxRecommendations]
 	}
+	blst := make(map[hash.Hash]bool)
+	hashes := t.Hashes()
+	for _, tip := range recs {
+		blst[tip.Hash()] = true
+	}
+	for len(recs) < MinimumValidations {
+		rndhash := hashes[rand.Int()%len(hashes)]
+		if blst[rndhash] {
+			continue
+		}
+		blst[rndhash] = true
+		s := t.Get(rndhash)
+		if s == nil {
+			continue
+		}
+		recs = append(recs, s.Site)
+	}
+	return recs
+}
+
+// Inject adds sites to the tangle without checking for validated tips
+func (t *Tangle) Inject(s *Object, tip bool) error {
+	err := t.verifySite(s.Site)
+	if err != nil {
+		return err
+	}
+	return t.addSite(s, tip)
+}
+
+func (t *Tangle) verifySite(s *site.Site) error {
 	if len(s.Validates) < MinimumValidations {
 		return ErrTooFewValidations
+	}
+	if s.Hash().Weight() < MinimumWeight {
+		return ErrWeightTooLow
 	}
 	return nil
 }
 
-func (t *Tangle) addSite(s *Object) error {
+func (t *Tangle) addSite(s *Object, tip bool) error {
+	for _, vs := range s.Site.Validates {
+		delete(t.tips, vs.Hash())
+	}
+	if tip {
+		t.tips[s.Site.Hash()] = true
+		t.store.SetTips(s.Site.Hash(), s.Site.Validates)
+	}
+
 	err := t.store.Add(s.Site)
 	if err != nil {
 		return err

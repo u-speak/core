@@ -2,6 +2,7 @@ package hash
 
 import (
 	"encoding/base64"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -32,6 +33,29 @@ func (h Hash) Weight() int {
 // Slice converts the fixed length hash to a dynamic slice
 func (h Hash) Slice() []byte {
 	return h[:]
+}
+
+// Diff returns the difference between the local and remote hashes
+func Diff(l, r []Hash) ([]Hash, []Hash) {
+	loc := mapset.NewSet()
+	for _, h := range l {
+		loc.Add(h)
+	}
+	rem := mapset.NewSet()
+	for _, h := range r {
+		rem.Add(h)
+	}
+	delm := loc.Difference(rem)
+	addm := rem.Difference(loc)
+	a, d := []Hash{}, []Hash{}
+
+	for _, h := range delm.ToSlice() {
+		d = append(d, h.(Hash))
+	}
+	for _, h := range addm.ToSlice() {
+		a = append(a, h.(Hash))
+	}
+	return a, d
 }
 
 // FromSlice turns a byte slice into a hash

@@ -24,11 +24,11 @@ func TestTips(t *testing.T) {
 	s1 := &site.Site{Content: hash.Hash{1}}
 	s2 := &site.Site{Content: hash.Hash{2}}
 	s3 := &site.Site{Content: hash.Hash{3}}
-	s.SetTips(s1, nil)
+	s.SetTips(s1.Hash(), nil)
 	assert.Equal(t, []hash.Hash{s1.Hash()}, s.GetTips())
-	s.SetTips(s2, nil)
+	s.SetTips(s2.Hash(), nil)
 	assert.Len(t, s.GetTips(), 2)
-	s.SetTips(s3, []*site.Site{s2})
+	s.SetTips(s3.Hash(), []*site.Site{s2})
 	assert.Len(t, s.GetTips(), 2)
 	assert.NotContains(t, s.GetTips(), hash.Hash{2})
 }

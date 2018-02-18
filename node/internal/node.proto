@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+message Info {
+  string Version = 1;
+  uint64 Length = 2;
+  string ListenInterface = 3;
+  repeated string Connections = 4;
+  repeated bytes Hashes = 5;
+}
+
+message Void {
+}
+
+message Site {
+  repeated bytes Validates = 1;
+  uint64 Nonce = 2;
+  bytes Content = 3;
+  string Type = 4;
+  bytes Data = 5;
+  bool Tip = 6;
+}
+
+message SuccessReturn {
+}
+
+service DistributionService {
+  rpc GetInfo(Info) returns (Info) {}
+  rpc AddSite(Site) returns (SuccessReturn) {}
+  rpc Splice(stream Site) returns (SuccessReturn) {}
+}
