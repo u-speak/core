@@ -23,7 +23,9 @@
       </div>
     </section>
     <div class="container is-fluid">
-      <div id="cy"></div>
+      <div class="box">
+        <div id="cy"></div>
+      </div>
     </div>
   </body>
   <script src="/static/cytoscape.min.js"></script>
@@ -34,32 +36,6 @@
    fetch('/tangle/graph')
      .then((resp) => resp.json())
      .then((body) => {
-       /* var nl = [];*/
-       /* body.nodes.forEach((n) => nl.push({id: n,label: n,shape:'square'}));*/
-       /* var nodes = new vis.DataSet(nl);*/
-       /* */
-       /* var edges = new vis.DataSet(body.edges);*/
-       /* */
-       /* var container = document.getElementById('mynetwork');*/
-       /* */
-       /* var data = {*/
-       /* nodes: nodes,*/
-       /* edges: edges*/
-       /* };*/
-       /* var options = {*/
-       /* layout: {*/
-       /* hierarchical: {*/
-       /* sortMethod: 'directed',*/
-       /* direction: 'RL'*/
-       /* },*/
-       /* },*/
-       /* edges: {*/
-       /* smooth: true,*/
-       /* arrows: {to: true}*/
-       /* }*/
-       /* };*/
-       /* */
-       /* var network = new vis.Network(container, data, options);*/
        var els = [];
        body.nodes.forEach((n) => els.push({data:{id: n}}));
        body.edges.forEach((e) => els.push({data:{id:e.from+e.to, source: e.from, target: e.to}}));
@@ -74,7 +50,9 @@
                     selector: 'node',
                     style: {
                       'background-color': '#666',
-                      'label': 'data(id)'
+                      'label': 'data(id)',
+                      'text-wrap': 'ellipsis',
+                      'text-max-width': '100px'
                     }
                   },
 
