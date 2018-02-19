@@ -21,6 +21,10 @@ type Configuration struct {
 		Port      int    `default:"6969" env:"NODE_PORT"`
 		Interface string `default:"127.0.0.1" env:"NODE_INTERFACE"`
 	}
+	Diagnostics struct {
+		Port      int    `default:"1337" env:"DIAG_PORT"`
+		Interface string `default:"127.0.0.1" env:"DIAG_INTERFACE"`
+	}
 	Hooks struct {
 		PreAdd string
 	}
