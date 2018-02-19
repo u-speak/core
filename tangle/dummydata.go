@@ -2,8 +2,6 @@ package tangle
 
 import (
 	"github.com/u-speak/core/tangle/hash"
-
-	"golang.org/x/crypto/blake2s"
 )
 
 type dummydata struct {
@@ -11,7 +9,7 @@ type dummydata struct {
 }
 
 func (d *dummydata) Hash() (hash.Hash, error) {
-	return blake2s.Sum256([]byte(d.content)), nil
+	return hash.New([]byte(d.content)), nil
 }
 func (d *dummydata) Serialize() ([]byte, error) {
 	return []byte(d.content), nil

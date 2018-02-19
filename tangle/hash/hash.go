@@ -3,6 +3,7 @@ package hash
 import (
 	"encoding/base64"
 	"github.com/deckarep/golang-set"
+	"golang.org/x/crypto/blake2b"
 )
 
 const (
@@ -10,8 +11,13 @@ const (
 	HashSize = 32
 )
 
-// Hash is a wrapper around blake2s
+// Hash is a wrapper around blake2b
 type Hash [HashSize]byte
+
+// New generates the digest for a slice
+func New(b []byte) Hash {
+	return blake2b.Sum256(b)
+}
 
 func (h Hash) String() string {
 	return base64.StdEncoding.EncodeToString(h[:])

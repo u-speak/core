@@ -1,7 +1,6 @@
 package site
 
 import (
-	"golang.org/x/crypto/blake2s"
 	"strconv"
 
 	"github.com/u-speak/core/tangle/hash"
@@ -22,7 +21,7 @@ func (s *Site) Hash() hash.Hash {
 	for _, s := range s.Validates {
 		ts += "V" + s.Hash().String()
 	}
-	return blake2s.Sum256([]byte(ts))
+	return hash.New([]byte(ts))
 }
 
 // Serialize converts the site to a slice of bytes

@@ -12,7 +12,6 @@ import (
 
 	"github.com/u-speak/core/tangle/hash"
 
-	"golang.org/x/crypto/blake2s"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
@@ -43,7 +42,7 @@ func (p *Post) Hash() (hash.Hash, error) {
 		return hash.Hash{}, err
 	}
 	h := "C" + p.Content + "D" + strconv.FormatInt(p.Date.Unix(), 10) + "P" + pubstr + "S" + sigstr
-	return blake2s.Sum256([]byte(h)), nil
+	return hash.New([]byte(h)), nil
 }
 
 // Verify returns no error when the signature is valid
