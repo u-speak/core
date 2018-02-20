@@ -131,7 +131,7 @@ func (t *Tangle) Get(h hash.Hash) *Object {
 		}
 		data = p
 	case "genesis":
-		data = nil
+		data = &genesis{}
 	case "dummy":
 		d := &dummydata{}
 		err := t.data.Get(d, md.Content)

@@ -20,7 +20,7 @@ func New(b []byte) Hash {
 }
 
 func (h Hash) String() string {
-	return base64.StdEncoding.EncodeToString(h[:])
+	return base64.URLEncoding.EncodeToString(h[:])
 }
 
 // Weight is the difficulty (or number of leading zeroes) of a site

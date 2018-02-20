@@ -17,6 +17,8 @@ type Serializable interface {
 	Serialize() ([]byte, error)
 	Deserialize([]byte) error
 	Type() string
+	JSON() error
+	ReInit() error
 }
 
 // Store is responsible for storing the actual data on the tangle

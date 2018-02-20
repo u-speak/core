@@ -21,3 +21,11 @@ func (d *dummydata) Deserialize(bts []byte) error {
 func (d *dummydata) Type() string {
 	return "dummy"
 }
+
+func (d *dummydata) JSON() error {
+	return nil
+}
+
+func (d *dummydata) ReInit() error {
+	return nil
+}

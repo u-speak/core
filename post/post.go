@@ -19,12 +19,13 @@ import (
 
 // Post contains all information needed for a complete post representation
 type Post struct {
-	Content   string
-	Date      time.Time
-	Pubkey    *packet.PublicKey `msg:"-"`
-	Signature *packet.Signature `msg:"-"`
-	PubkeyStr string
-	SigStr    string
+	Content   string            `json:"content"`
+	Date      time.Time         `json:"-"`
+	Pubkey    *packet.PublicKey `msg:"-" json:"-"`
+	Signature *packet.Signature `msg:"-" json:"-"`
+	PubkeyStr string            `json:"pubkey"`
+	SigStr    string            `json:"signature"`
+	JSONDate  int64             `json:"date"`
 }
 
 type serializable interface {
@@ -57,17 +58,25 @@ func (p *Post) Verify() error {
 
 // Serialize implements tangle/datastore.serializable
 func (p *Post) Serialize() ([]byte, error) {
-	pk, err := asciiEncode(p.Pubkey, openpgp.PublicKeyType)
+	err := p.storePGPStr()
 	if err != nil {
 		return nil, err
+	}
+	return p.MarshalMsg(nil)
+}
+
+func (p *Post) storePGPStr() error {
+	pk, err := asciiEncode(p.Pubkey, openpgp.PublicKeyType)
+	if err != nil {
+		return err
 	}
 	p.PubkeyStr = pk
 	ss, err := asciiEncode(p.Signature, openpgp.SignatureType)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	p.SigStr = ss
-	return p.MarshalMsg(nil)
+	return nil
 }
 
 // Deserialize implements tangle/datastore.serializable
@@ -76,6 +85,17 @@ func (p *Post) Deserialize(bts []byte) error {
 	if err != nil {
 		return err
 	}
+	return p.ReInit()
+}
+
+// JSON prepares for json encoding
+func (p *Post) JSON() error {
+	p.JSONDate = p.Date.Unix()
+	return p.storePGPStr()
+}
+
+// ReInit restores the original field after serialization
+func (p *Post) ReInit() error {
 	pubpkt, err := asciiDecode(p.PubkeyStr)
 	if err != nil {
 		return err

@@ -9,9 +9,15 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/core/config"
 	"github.com/u-speak/core/node"
+	"github.com/u-speak/core/post"
+	"github.com/u-speak/core/tangle"
+	"github.com/u-speak/core/tangle/datastore"
+	"github.com/u-speak/core/tangle/site"
+	// "github.com/u-speak/core/tangle/hash"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/logrusmiddleware"
 )
 
@@ -33,16 +39,15 @@ type Error struct {
 	Code    int    `json:"code"`
 }
 
-type jsonBlock struct {
-	Nonce        uint32 `json:"nonce"`
-	PrevHash     string `json:"previous_hash"`
-	Hash         string `json:"hash"`
-	Content      string `json:"content"`
-	Signature    string `json:"signature"`
-	Type         string `json:"type"`
-	PubKey       string `json:"public_key"`
-	Date         int64  `json:"date"`
-	BubbleBabble string `json:"bubblebabble"`
+type jsonSite struct {
+	Nonce        uint64                 `json:"nonce"`
+	Validates    []string               `json:"validates"`
+	Hash         string                 `json:"hash"`
+	Content      string                 `json:"content"`
+	Type         string                 `json:"type"`
+	BubbleBabble string                 `json:"bubblebabble"`
+	Weight       int                    `json:"weight"`
+	Data         datastore.Serializable `json:"data"`
 }
 
 // New returns a configured instance of the API server
@@ -83,12 +88,85 @@ func (a *API) Run() error {
 
 	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
+	apiV1.GET("/tangle/:hash", a.getSite)
+	apiV1.POST("/tangle/:type", a.addSite)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)
 }
 
 func (a *API) getStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, a.node.Status())
+}
+
+func (a *API) getSite(c echo.Context) error {
+	h, err := decodeHash(c.Param("hash"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid base64 data", Code: http.StatusBadRequest})
+	}
+	s := a.node.Tangle.Get(h)
+	if s == nil {
+		return c.JSON(http.StatusNotFound, Error{Message: "Site not found", Code: http.StatusNotFound})
+	}
+	err = s.Data.JSON()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: "Error preparing response", Code: http.StatusInternalServerError})
+	}
+	j := JSONize(s)
+	j.Weight = a.node.Tangle.Weight(s.Site)
+	return c.JSON(http.StatusOK, j)
+}
+
+func (a *API) addSite(c echo.Context) error {
+	s := new(jsonSite)
+	switch c.Param("type") {
+	case "post":
+		s.Data = &post.Post{}
+	default:
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid type parameter", Code: http.StatusInternalServerError})
+	}
+	if err := c.Bind(s); err != nil {
+		return err
+	}
+	sh, err := decodeHash(s.Hash)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode provided hash", Code: http.StatusBadRequest})
+	}
+	switch c.Param("type") {
+	case "post":
+		err := s.Data.ReInit()
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Bad post data: " + err.Error() + " (Are you missing PGP data?)", Code: http.StatusBadRequest})
+		}
+		err = s.Data.(*post.Post).Verify()
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Bad PGP Signature: " + err.Error(), Code: http.StatusBadRequest})
+		}
+	}
+	o := &tangle.Object{Data: s.Data}
+	ch, err := decodeHash(s.Content)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode content hash", Code: http.StatusBadRequest})
+	}
+	o.Site = &site.Site{Nonce: s.Nonce, Content: ch, Type: s.Type, Validates: []*site.Site{}}
+	for _, b64 := range s.Validates {
+		h, err := decodeHash(b64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash in validations: " + b64, Code: http.StatusBadRequest})
+		}
+		v := a.node.Tangle.Get(h)
+		if v == nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Tried to verify unknown block" + b64, Code: http.StatusBadRequest})
+		}
+		o.Site.Validates = append(o.Site.Validates, v.Site)
+	}
+	if o.Site.Hash() != sh {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Provided hash does not match", Code: http.StatusBadRequest})
+	}
+	err = a.node.Submit(o)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
+	}
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (a *API) uploadImage(c echo.Context) error {
