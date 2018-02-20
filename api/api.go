@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math/rand"
 	"net/http"
 	"strconv"
 
@@ -15,10 +16,14 @@ import (
 	"github.com/u-speak/core/tangle"
 	"github.com/u-speak/core/tangle/datastore"
 	"github.com/u-speak/core/tangle/site"
-	// "github.com/u-speak/core/tangle/hash"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/logrusmiddleware"
+)
+
+const (
+	// MaxLatest is the highest limit amount for getRandom
+	MaxLatest = 100
 )
 
 // API is used as a container, allowing the REST API to access the node
@@ -88,6 +93,7 @@ func (a *API) Run() error {
 
 	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
+	apiV1.GET("/tangle", a.getRandom)
 	apiV1.GET("/tangle/:hash", a.getSite)
 	apiV1.POST("/tangle/:type", a.addSite)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
@@ -258,44 +264,6 @@ func (a *API) getImage(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (a *API) addBlock(c echo.Context) error {
-	// block := new(jsonBlock)
-	// if err := c.Bind(block); err != nil {
-	// 	return err
-	// }
-	// b := chain.Block{
-	// 	Content:   block.Content,
-	// 	Signature: block.Signature,
-	// 	Nonce:     block.Nonce,
-	// 	Type:      block.Type,
-	// 	Date:      time.Unix(block.Date, 0),
-	// 	PubKey:    block.PubKey,
-	// }
-	// hash, err := decodeHash(block.Hash)
-	// if err != nil {
-	// 	return c.JSON(http.StatusBadRequest, Error{
-	// 		Code:    http.StatusBadRequest,
-	// 		Message: err.Error(),
-	// 	})
-	// }
-
-	// prevhash, err := decodeHash(block.PrevHash)
-	// if err != nil {
-	// 	return c.JSON(http.StatusBadRequest, Error{
-	// 		Code:    http.StatusBadRequest,
-	// 		Message: err.Error(),
-	// 	})
-	// }
-	// b.PrevHash = prevhash
-	// if b.Hash() != hash {
-	// 	h := b.Hash()
-	// 	log.Debugf("Should: %s, Was: %s", base64.URLEncoding.EncodeToString(h[:]), base64.URLEncoding.EncodeToString(hash[:]))
-	// 	return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Block hash did not match its contents"})
-	// }
-	// a.node.SubmitBlock(b)
-	return c.NoContent(http.StatusCreated)
-}
-
 func (a *API) getSearch(c echo.Context) error {
 	// results := []jsonBlock{}
 	// bs := a.node.PostChain.Search(c.QueryParam("q"))
@@ -311,38 +279,26 @@ func (a *API) getSearch(c echo.Context) error {
 	return c.NoContent(http.StatusCreated)
 }
 
-func (a *API) getBlocks(c echo.Context) error {
-	// results := []jsonBlock{}
-	// ls := c.QueryParam("limit")
-	// limit := 10
-	// if ls != "" {
-	// 	ln, err := strconv.Atoi(ls)
-	// 	if err == nil {
-	// 		limit = ln
-	// 	}
-	// }
-	// os := c.QueryParam("offset")
-	// offset := a.node.PostChain.LastHash()
-	// if os != "" {
-	// 	osr, err := decodeHash(os)
-	// 	if err == nil {
-	// 		offset = osr
-	// 	}
-	// }
-	// switch c.Param("type") {
-	// case "key", "image":
-	// 	return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "This operation is only supported for type=post"})
-	// case "post":
-	// 	l, err := a.node.PostChain.Latest(limit, offset)
-	// 	if err != nil {
-	// 		return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: err.Error()})
-	// 	}
-	// 	for _, b := range l {
-	// 		results = append(results, jsonize(b))
-	// 	}
-	// }
-	// return c.JSON(http.StatusOK, struct {
-	// 	Results []jsonBlock `json:"results"`
-	// }{Results: results})
-	return c.NoContent(http.StatusCreated)
+func (a *API) getRandom(c echo.Context) error {
+	ls := c.QueryParam("limit")
+	limit := 10
+	if ls != "" {
+		ln, err := strconv.Atoi(ls)
+		if err == nil && ln < MaxLatest {
+			limit = ln
+		}
+	}
+	hs := a.node.Tangle.Hashes()
+	for i := range hs {
+		j := rand.Intn(i + 1)
+		hs[i], hs[j] = hs[j], hs[i]
+	}
+	res := []string{}
+	if limit > len(hs) {
+		limit = len(hs)
+	}
+	for _, h := range hs[:limit] {
+		res = append(res, h.String())
+	}
+	return c.JSON(http.StatusOK, res)
 }

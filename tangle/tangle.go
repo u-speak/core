@@ -116,7 +116,7 @@ func (t *Tangle) Tips() []*site.Site {
 
 // Get retrieves the specified site
 func (t *Tangle) Get(h hash.Hash) *Object {
-	md := t.store.Get(h)
+	md := t.GetSite(h)
 	if md == nil {
 		return nil
 	}
@@ -145,6 +145,11 @@ func (t *Tangle) Get(h hash.Hash) *Object {
 		return nil
 	}
 	return &Object{Site: md, Data: data}
+}
+
+// GetSite returns the site without any data
+func (t *Tangle) GetSite(h hash.Hash) *site.Site {
+	return t.store.Get(h)
 }
 
 // Close closes the underlying store
