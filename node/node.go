@@ -19,6 +19,7 @@ import (
 	"github.com/u-speak/core/tangle/store"
 	"github.com/u-speak/core/tangle/store/boltstore"
 
+	"github.com/jasonlvhit/gocron"
 	log "github.com/sirupsen/logrus"
 	d "github.com/u-speak/core/node/internal"
 	context "golang.org/x/net/context"
@@ -157,7 +158,32 @@ func (n *Node) Run() {
 	// Set MsgSize to 5MB
 	grpcServer := grpc.NewServer(grpc.MaxRecvMsgSize(MaxMsgSize), grpc.MaxRecvMsgSize(MaxMsgSize))
 	d.RegisterDistributionServiceServer(grpcServer, n)
+
+	log.Info("Starting cronjobs")
+	go n.startCron()
 	log.Fatal(grpcServer.Serve(lis))
+}
+
+func (n *Node) startCron() {
+	gocron.Every(1).Minute().Do(func() {
+		log.Info("Starting periodic merge")
+		for r := range n.remoteInterfaces {
+			s, err := n.RemoteStatus(r)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			if len(s.HashDiff.Additions) == 0 && len(s.HashDiff.Deletions) == 0 {
+				continue
+			}
+			err = n.Merge(r)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+		log.Info("Finished periodic merge")
+	})
+	<-gocron.Start()
 }
 
 func (n *Node) connect(remote string) error {
@@ -235,6 +261,7 @@ func (n *Node) Push(o *tangle.Object) error {
 func (n *Node) AddSite(ctx context.Context, s *d.Site) (*d.SuccessReturn, error) {
 	o, err := n.toObject(s)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 	log.Debugf("Received Site %s", o.Site.Hash())
@@ -300,7 +327,11 @@ func (n *Node) Merge(r string) error {
 		}
 		log.Infof("Sent %s", o.Site.Hash())
 	}
-	return stream.CloseSend()
+	_, err = stream.CloseAndRecv()
+	if err == io.EOF {
+		return nil
+	}
+	return err
 }
 
 // Splice injects the recieved sites into the tangle
@@ -336,11 +367,13 @@ func (n *Node) Splice(stream d.DistributionService_SpliceServer) error {
 			break
 		}
 		if err != nil {
+			log.Error(err)
 			return err
 		}
 		if canLink(in) {
 			err := inj(in)
 			if err != nil {
+				log.Error(err)
 				return err
 			}
 		} else {
@@ -354,6 +387,7 @@ func (n *Node) Splice(stream d.DistributionService_SpliceServer) error {
 			if canLink(s) {
 				err := inj(s)
 				if err != nil {
+					log.Error(err)
 					return err
 				}
 				delete(buff, s)
@@ -370,6 +404,9 @@ func (n *Node) toObject(s *d.Site) (*tangle.Object, error) {
 	vs := []*site.Site{}
 	for _, h := range s.Validates {
 		o := n.Tangle.Get(hash.FromSlice(h))
+		if o == nil {
+			return nil, errors.New("This node does not know about hash " + hash.FromSlice(h).String())
+		}
 		vs = append(vs, o.Site)
 	}
 	var d datastore.Serializable
