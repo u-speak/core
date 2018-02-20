@@ -166,7 +166,6 @@ func (n *Node) Run() {
 
 func (n *Node) startCron() {
 	gocron.Every(1).Minute().Do(func() {
-		log.Info("Starting periodic merge")
 		for r := range n.remoteInterfaces {
 			s, err := n.RemoteStatus(r)
 			if err != nil {
@@ -181,7 +180,6 @@ func (n *Node) startCron() {
 				log.Error(err)
 			}
 		}
-		log.Info("Finished periodic merge")
 	})
 	<-gocron.Start()
 }
