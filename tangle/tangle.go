@@ -2,7 +2,9 @@ package tangle
 
 import (
 	"math/rand"
+	"strings"
 
+	"github.com/u-speak/core/img"
 	"github.com/u-speak/core/post"
 	"github.com/u-speak/core/tangle/datastore"
 	"github.com/u-speak/core/tangle/hash"
@@ -132,6 +134,14 @@ func (t *Tangle) Get(h hash.Hash) *Object {
 		data = p
 	case "genesis":
 		data = &genesis{}
+	case "image":
+		i := &img.Image{}
+		err := t.data.Get(i, md.Content)
+		if err != nil {
+			log.Error(err)
+			return nil
+		}
+		data = i
 	case "dummy":
 		d := &dummydata{}
 		err := t.data.Get(d, md.Content)
@@ -256,6 +266,42 @@ func (t *Tangle) Inject(s *Object, tip bool) error {
 		return err
 	}
 	return t.addSite(s, tip)
+}
+
+// Search performs a full text search for posts on the tangle
+func (t *Tangle) Search(s string) []*Object {
+	q := strings.ToLower(s)
+	type SR struct {
+		Match  bool
+		Object *Object
+	}
+	hs := t.Hashes()
+	res := make(chan *SR, len(hs))
+
+	worker := func(h hash.Hash) {
+		o := t.Get(h)
+		if o == nil || o.Site.Type != "post" {
+			res <- &SR{Match: false}
+			return
+		}
+		p := o.Data.(*post.Post)
+		if strings.Contains(strings.ToLower(p.Content), q) {
+			res <- &SR{Match: true, Object: o}
+		} else {
+			res <- &SR{Match: false}
+		}
+	}
+	for _, h := range hs {
+		go worker(h)
+	}
+	results := []*Object{}
+	for i := 0; i < len(hs); i++ {
+		rs := <-res
+		if rs.Match {
+			results = append(results, rs.Object)
+		}
+	}
+	return results
 }
 
 func (t *Tangle) verifySite(s *site.Site) error {

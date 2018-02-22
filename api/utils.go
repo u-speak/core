@@ -5,7 +5,9 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/u-speak/core/post"
 	"github.com/u-speak/core/tangle"
+	"github.com/u-speak/core/tangle/datastore"
 	"github.com/u-speak/core/tangle/hash"
 	"github.com/u-speak/core/util"
 )
@@ -71,4 +73,12 @@ func decodeHash(s string) (hash.Hash, error) {
 		return h, nil
 	}
 	return [32]byte{}, errors.New("Could not parse base64 data")
+}
+
+func verifyGPG(s datastore.Serializable) error {
+	err := s.ReInit()
+	if err != nil {
+		return err
+	}
+	return s.(*post.Post).Verify()
 }

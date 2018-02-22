@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/u-speak/core/config"
+	"github.com/u-speak/core/img"
 	"github.com/u-speak/core/post"
 	"github.com/u-speak/core/tangle"
 	"github.com/u-speak/core/tangle/datastore"
@@ -411,6 +412,8 @@ func (n *Node) toObject(s *d.Site) (*tangle.Object, error) {
 	switch s.Type {
 	case "post":
 		d = &post.Post{}
+	case "image":
+		d = &img.Image{}
 	default:
 		return nil, errors.New("Invalid site type")
 	}
