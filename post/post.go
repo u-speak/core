@@ -8,7 +8,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/u-speak/core/tangle/hash"
 
@@ -20,12 +19,11 @@ import (
 // Post contains all information needed for a complete post representation
 type Post struct {
 	Content   string            `json:"content"`
-	Date      time.Time         `json:"-"`
 	Pubkey    *packet.PublicKey `msg:"-" json:"-"`
 	Signature *packet.Signature `msg:"-" json:"-"`
 	PubkeyStr string            `json:"pubkey"`
 	SigStr    string            `json:"signature"`
-	JSONDate  int64             `json:"date"`
+	Timestamp int64             `json:"date"`
 }
 
 type serializable interface {
@@ -42,7 +40,7 @@ func (p *Post) Hash() (hash.Hash, error) {
 	if err != nil {
 		return hash.Hash{}, err
 	}
-	h := "C" + p.Content + "D" + strconv.FormatInt(p.Date.Unix(), 10) + "P" + pubstr + "S" + sigstr
+	h := "C" + p.Content + "D" + strconv.FormatInt(p.Timestamp, 10) + "P" + pubstr + "S" + sigstr
 	return hash.New([]byte(h)), nil
 }
 
@@ -90,7 +88,6 @@ func (p *Post) Deserialize(bts []byte) error {
 
 // JSON prepares for json encoding
 func (p *Post) JSON() error {
-	p.JSONDate = p.Date.Unix()
 	return p.storePGPStr()
 }
 

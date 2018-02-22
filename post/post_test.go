@@ -34,7 +34,7 @@ func post(t *testing.T) *Post {
 	assert.NoError(t, err)
 	sig, ok := pkt.(*packet.Signature)
 	assert.True(t, ok)
-	p := &Post{Content: content, Pubkey: &privkey.PublicKey, Signature: sig}
+	p := &Post{Content: content, Pubkey: &privkey.PublicKey, Signature: sig, Timestamp: time.Now().Unix()}
 	return p
 }
 
@@ -54,4 +54,5 @@ func TestSerializeable(t *testing.T) {
 	err = p2.Deserialize(buff)
 	assert.NoError(t, err)
 	assert.NoError(t, p2.Verify())
+	assert.EqualValues(t, p.Timestamp, p2.Timestamp)
 }

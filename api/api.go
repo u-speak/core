@@ -158,6 +158,10 @@ func (a *API) addSite(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode content hash", Code: http.StatusBadRequest})
 	}
+	dh, err := o.Data.Hash()
+	if err != nil || ch != dh {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Content did not match supplied hash", Code: http.StatusBadRequest})
+	}
 	o.Site = &site.Site{Nonce: s.Nonce, Content: ch, Type: s.Type, Validates: []*site.Site{}}
 	for _, b64 := range s.Validates {
 		h, err := decodeHash(b64)
