@@ -5,27 +5,32 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/u-speak/core/chain"
+	"github.com/u-speak/core/post"
+	"github.com/u-speak/core/tangle"
+	"github.com/u-speak/core/tangle/datastore"
+	"github.com/u-speak/core/tangle/hash"
 	"github.com/u-speak/core/util"
 )
 
-func jsonize(b *chain.Block) jsonBlock {
-	h := b.Hash()
-	p := b.PrevHash
-	return jsonBlock{
-		Hash:         base64.URLEncoding.EncodeToString(h[:]),
-		Nonce:        b.Nonce,
-		PrevHash:     base64.URLEncoding.EncodeToString(p[:]),
-		Content:      b.Content,
-		Signature:    b.Signature,
-		Type:         b.Type,
-		PubKey:       b.PubKey,
-		Date:         b.Date.Unix(),
+// JSONize converts an object into a jsonSite
+func JSONize(o *tangle.Object) jsonSite {
+	h := o.Site.Hash()
+	vals := []string{}
+	for _, v := range o.Site.Validates {
+		vals = append(vals, v.Hash().String())
+	}
+	return jsonSite{
+		Nonce:        o.Site.Nonce,
+		Hash:         h.String(),
+		Validates:    vals,
+		Content:      o.Site.Content.String(),
+		Type:         o.Site.Type,
 		BubbleBabble: util.EncodeBubbleBabble(h),
+		Data:         o.Data,
 	}
 }
 
-func decodeImageHash(s string) (chain.Hash, string) {
+func decodeImageHash(s string) (hash.Hash, string) {
 	a := strings.Split(s, ".")
 	h, _ := decodeHash(a[0])
 	if len(a) == 1 {
@@ -40,7 +45,7 @@ func decodeImageHash(s string) (chain.Hash, string) {
 	return h, ""
 }
 
-func decodeHash(s string) (chain.Hash, error) {
+func decodeHash(s string) (hash.Hash, error) {
 	h := [32]byte{}
 	var hs []byte
 	h, err := util.DecodeBubbleBabble(s)
@@ -68,4 +73,12 @@ func decodeHash(s string) (chain.Hash, error) {
 		return h, nil
 	}
 	return [32]byte{}, errors.New("Could not parse base64 data")
+}
+
+func verifyGPG(s datastore.Serializable) error {
+	err := s.ReInit()
+	if err != nil {
+		return err
+	}
+	return s.(*post.Post).Verify()
 }

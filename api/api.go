@@ -2,24 +2,32 @@ package api
 
 import (
 	"bytes"
-	"encoding/base64"
-	"image"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"image/jpeg"
 	"image/png"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	log "github.com/sirupsen/logrus"
-	"github.com/u-speak/core/chain"
 	"github.com/u-speak/core/config"
+	"github.com/u-speak/core/img"
 	"github.com/u-speak/core/node"
+	"github.com/u-speak/core/post"
+	"github.com/u-speak/core/tangle"
+	"github.com/u-speak/core/tangle/datastore"
+	"github.com/u-speak/core/tangle/site"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/u-speak/logrusmiddleware"
+)
+
+const (
+	// MaxLatest is the highest limit amount for getRandom
+	MaxLatest = 100
 )
 
 // API is used as a container, allowing the REST API to access the node
@@ -40,16 +48,15 @@ type Error struct {
 	Code    int    `json:"code"`
 }
 
-type jsonBlock struct {
-	Nonce        uint32 `json:"nonce"`
-	PrevHash     string `json:"previous_hash"`
-	Hash         string `json:"hash"`
-	Content      string `json:"content"`
-	Signature    string `json:"signature"`
-	Type         string `json:"type"`
-	PubKey       string `json:"public_key"`
-	Date         int64  `json:"date"`
-	BubbleBabble string `json:"bubblebabble"`
+type jsonSite struct {
+	Nonce        uint64                 `json:"nonce"`
+	Validates    []string               `json:"validates"`
+	Hash         string                 `json:"hash"`
+	Content      string                 `json:"content"`
+	Type         string                 `json:"type"`
+	BubbleBabble string                 `json:"bubblebabble"`
+	Weight       int                    `json:"weight"`
+	Data         datastore.Serializable `json:"data"`
 }
 
 // New returns a configured instance of the API server
@@ -88,42 +95,14 @@ func (a *API) Run() error {
 
 	e.Use(serverMessage)
 
-	validateChain := func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			var ch *chain.Chain
-			switch c.Param("type") {
-			case "post":
-				ch = a.node.PostChain
-			case "image":
-				ch = a.node.ImageChain
-			case "key":
-				ch = a.node.KeyChain
-			}
-			if !ch.Valid() {
-				return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: chain.ErrInvalidChain.Error()})
-			}
-			return next(c)
-		}
-	}
-
 	apiV1 := e.Group("/api/v1")
 	apiV1.GET("/status", a.getStatus)
-	apiV1.GET("/chains/:type/:hash", a.getBlock, validateChain)
-	apiV1.GET("/images/:hash", a.getImage)
-	apiV1.POST("/images", a.uploadImage)
-	apiV1.POST("/chains/:type", a.addBlock, validateChain)
-	apiV1.GET("/chains/:type", a.getBlocks, validateChain)
-	apiV1.GET("/search", a.getSearch)
-	if a.adminEnabled {
-		admin := apiV1.Group("/admin", middleware.BasicAuth(func(u, p string, c echo.Context) (bool, error) {
-			if u == a.user && p == a.password {
-				return true, nil
-			}
-			return false, nil
-		}))
-		admin.GET("/nodes", a.getNodes)
-		admin.POST("/nodes", a.addNode)
-	}
+	apiV1.POST("/image", a.uploadImage)
+	apiV1.GET("/image/:hash", a.getImage)
+	apiV1.GET("/tangle", a.getSearch)
+	apiV1.GET("/tangle/random", a.getRandom)
+	apiV1.GET("/tangle/:hash", a.getSite)
+	apiV1.POST("/tangle/:type", a.addSite)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)
 }
@@ -132,57 +111,101 @@ func (a *API) getStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, a.node.Status())
 }
 
-func (a *API) getBlock(c echo.Context) error {
+func (a *API) getSite(c echo.Context) error {
 	h, err := decodeHash(c.Param("hash"))
 	if err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid base64 data", Code: http.StatusBadRequest})
 	}
-	var b *chain.Block
+	s := a.node.Tangle.Get(h)
+	if s == nil {
+		return c.JSON(http.StatusNotFound, Error{Message: "Site not found", Code: http.StatusNotFound})
+	}
+	err = s.Data.JSON()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: "Error preparing response", Code: http.StatusInternalServerError})
+	}
+	j := JSONize(s)
+	j.Weight = a.node.Tangle.Weight(s.Site)
+	return c.JSON(http.StatusOK, j)
+}
+
+func (a *API) addSite(c echo.Context) error {
+	s := new(jsonSite)
 	switch c.Param("type") {
 	case "post":
-		b = a.node.PostChain.Get(h)
+		s.Data = &post.Post{}
 	case "image":
-		b = a.node.ImageChain.Get(h)
-	case "key":
-		b = a.node.KeyChain.Get(h)
+		s.Data = &img.Image{}
 	default:
-		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid Chain Type", Code: http.StatusBadRequest})
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid type parameter", Code: http.StatusInternalServerError})
 	}
-
-	if b == nil {
-		return c.JSON(http.StatusNotFound, Error{Message: "Block not found", Code: http.StatusNotFound})
+	if err := c.Bind(s); err != nil {
+		return err
 	}
-	return c.JSON(http.StatusOK, jsonize(b))
+	sh, err := decodeHash(s.Hash)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode provided hash", Code: http.StatusBadRequest})
+	}
+	switch c.Param("type") {
+	case "post":
+		err := verifyGPG(s.Data)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
+		}
+	}
+	o := &tangle.Object{Data: s.Data}
+	ch, err := decodeHash(s.Content)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode content hash", Code: http.StatusBadRequest})
+	}
+	o.Site = &site.Site{Nonce: s.Nonce, Content: ch, Type: s.Type, Validates: []*site.Site{}}
+	for _, b64 := range s.Validates {
+		h, err := decodeHash(b64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash in validations: " + b64, Code: http.StatusBadRequest})
+		}
+		v := a.node.Tangle.Get(h)
+		if v == nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Tried to verify unknown site " + b64, Code: http.StatusBadRequest})
+		}
+		o.Site.Validates = append(o.Site.Validates, v.Site)
+	}
+	if o.Site.Hash() != sh {
+		return c.JSON(http.StatusBadRequest, Error{Message: "Provided hash does not match", Code: http.StatusBadRequest})
+	}
+	err = a.node.Submit(o)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
+	}
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (a *API) uploadImage(c echo.Context) error {
-	if !a.node.ImageChain.Valid() {
-		return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: chain.ErrInvalidChain.Error()})
-	}
-	nonce := c.FormValue("nonce")
-	prevHash, err := decodeHash(c.FormValue("prevHash"))
+	o := &tangle.Object{Site: &site.Site{}}
+	nonce, err := strconv.ParseUint(c.FormValue("nonce"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: PrevHash", Code: http.StatusBadRequest})
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
 	}
-	ts, err := strconv.ParseInt(c.FormValue("timestamp"), 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: timestamp", Code: http.StatusBadRequest})
+	o.Site.Nonce = nonce
+	o.Site.Type = "image"
+
+	vls := strings.Split(c.FormValue("validates"), ",")
+	for _, b64 := range vls {
+		h, err := decodeHash(b64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash in validations: " + b64, Code: http.StatusBadRequest})
+		}
+		v := a.node.Tangle.Get(h)
+		if v == nil {
+			return c.JSON(http.StatusBadRequest, Error{Message: "Tried to verify unknown site " + b64, Code: http.StatusBadRequest})
+		}
+		o.Site.Validates = append(o.Site.Validates, v.Site)
 	}
 	rh, err := decodeHash(c.FormValue("hash"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Hash", Code: http.StatusBadRequest})
 	}
-	n, err := strconv.ParseUint(nonce, 10, 32)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Nonce", Code: http.StatusBadRequest})
-	}
-	d := time.Unix(ts, 0)
-	bl := chain.Block{
-		Nonce:    uint32(n),
-		PrevHash: prevHash,
-		Type:     "image",
-		Date:     d,
-	}
+
 	file, err := c.FormFile("image")
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Could not find image", Code: http.StatusBadRequest})
@@ -198,156 +221,76 @@ func (a *API) uploadImage(c echo.Context) error {
 	if buff.Len() >= node.MaxMsgSize {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Image to large, please compress it further or crop it", Code: http.StatusBadRequest})
 	}
-	bl.Content = base64.URLEncoding.EncodeToString(buff.Bytes())
-	if bl.Hash() != rh {
+	o.Data = &img.Image{Raw: buff.Bytes()}
+	o.Site.Content, _ = o.Data.Hash()
+	if o.Site.Hash() != rh {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash. Please recalculate the nonce", Code: http.StatusBadRequest})
 	}
-	a.node.Push(&bl)
-	return c.NoContent(http.StatusCreated)
+	err = a.node.Submit(o)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
+	}
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (a *API) getImage(c echo.Context) error {
-	if !a.node.ImageChain.Valid() {
-		return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: chain.ErrInvalidChain.Error()})
-	}
 	h, t := decodeImageHash(c.Param("hash"))
-	if h.Empty() {
-		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Could not decode hash"})
+	s := a.node.Tangle.Get(h)
+	if s.Site.Type != "image" {
+		return c.JSON(http.StatusBadRequest, Error{Message: "requested site was not an image", Code: http.StatusBadRequest})
 	}
-	ib := a.node.ImageChain.Get(h)
-	if ib == nil {
-		return c.JSON(http.StatusNotFound, Error{Message: "Image not found", Code: http.StatusNotFound})
-	}
-	dr := base64.NewDecoder(base64.URLEncoding, strings.NewReader(ib.Content))
-	img, _, err := image.Decode(dr)
+	i, err := s.Data.(*img.Image).Image()
 	if err != nil {
-		log.Error(err)
-		return c.JSON(http.StatusBadRequest, Error{Message: "Could not process image", Code: http.StatusBadRequest})
+		return c.JSON(http.StatusInternalServerError, Error{Message: err.Error(), Code: http.StatusInternalServerError})
 	}
-
-	if t == "" {
-		t = c.Request().Header.Get("Accept")
-	}
-
 	switch t {
 	case "image/jpeg":
 		c.Response().Header().Set("Content-Type", "image/jpeg")
-		jpeg.Encode(c.Response().Writer, img, &jpeg.Options{Quality: 80})
+		jpeg.Encode(c.Response().Writer, i, &jpeg.Options{Quality: 80})
 		return nil
 	case "image/png":
 		c.Response().Header().Set("Content-Type", "image/png")
-		png.Encode(c.Response().Writer, img)
+		png.Encode(c.Response().Writer, i)
 		return nil
 	default:
 		return c.JSON(http.StatusBadRequest, Error{Message: "Please indicate the requested format with the Accept header or the file type", Code: http.StatusBadRequest})
 	}
 }
 
-func (a *API) addBlock(c echo.Context) error {
-	block := new(jsonBlock)
-	if err := c.Bind(block); err != nil {
-		return err
-	}
-	b := chain.Block{
-		Content:   block.Content,
-		Signature: block.Signature,
-		Nonce:     block.Nonce,
-		Type:      block.Type,
-		Date:      time.Unix(block.Date, 0),
-		PubKey:    block.PubKey,
-	}
-	hash, err := decodeHash(block.Hash)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, Error{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		})
-	}
-
-	prevhash, err := decodeHash(block.PrevHash)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, Error{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		})
-	}
-	b.PrevHash = prevhash
-	if b.Hash() != hash {
-		h := b.Hash()
-		log.Debugf("Should: %s, Was: %s", base64.URLEncoding.EncodeToString(h[:]), base64.URLEncoding.EncodeToString(hash[:]))
-		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Block hash did not match its contents"})
-	}
-	a.node.SubmitBlock(b)
-	return c.NoContent(http.StatusCreated)
-}
-
 func (a *API) getSearch(c echo.Context) error {
-	results := []jsonBlock{}
-	bs := a.node.PostChain.Search(c.QueryParam("q"))
-	if len(bs) == 0 {
+	results := []jsonSite{}
+	sr := a.node.Tangle.Search(c.QueryParam("q"))
+	if len(sr) == 0 {
 		return c.JSON(http.StatusNotFound, Error{Message: "No results found", Code: http.StatusNotFound})
 	}
-	for _, b := range bs {
-		results = append(results, jsonize(b))
+	for _, o := range sr {
+		results = append(results, JSONize(o))
 	}
 	return c.JSON(http.StatusOK, struct {
-		Results []jsonBlock `json:"results"`
+		Results []jsonSite `json:"results"`
 	}{Results: results})
 }
 
-func (a *API) getBlocks(c echo.Context) error {
-	results := []jsonBlock{}
+func (a *API) getRandom(c echo.Context) error {
 	ls := c.QueryParam("limit")
 	limit := 10
 	if ls != "" {
 		ln, err := strconv.Atoi(ls)
-		if err == nil {
+		if err == nil && ln < MaxLatest {
 			limit = ln
 		}
 	}
-	os := c.QueryParam("offset")
-	offset := a.node.PostChain.LastHash()
-	if os != "" {
-		osr, err := decodeHash(os)
-		if err == nil {
-			offset = osr
-		}
+	hs := a.node.Tangle.Hashes()
+	for i := range hs {
+		j := rand.Intn(i + 1)
+		hs[i], hs[j] = hs[j], hs[i]
 	}
-	switch c.Param("type") {
-	case "key", "image":
-		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "This operation is only supported for type=post"})
-	case "post":
-		l, err := a.node.PostChain.Latest(limit, offset)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, Error{Code: http.StatusInternalServerError, Message: err.Error()})
-		}
-		for _, b := range l {
-			results = append(results, jsonize(b))
-		}
+	res := []string{}
+	if limit > len(hs) {
+		limit = len(hs)
 	}
-	return c.JSON(http.StatusOK, struct {
-		Results []jsonBlock `json:"results"`
-	}{Results: results})
-}
-
-func (a *API) getNodes(c echo.Context) error {
-	return c.JSON(http.StatusOK, a.node.Status().Connections)
-}
-
-func (a *API) addNode(c echo.Context) error {
-	params := &struct {
-		Node string `json:"node"`
-	}{}
-	if err := c.Bind(params); err != nil {
-		log.Error(err)
-		return c.JSON(http.StatusBadRequest, Error{Code: http.StatusBadRequest, Message: "Bad request parameter"})
+	for _, h := range hs[:limit] {
+		res = append(res, h.String())
 	}
-	err := a.node.Connect(params.Node)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, Error{
-			Code:    http.StatusInternalServerError,
-			Message: "Could not connect to remote: " + err.Error(),
-		})
-	}
-	return c.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, res)
 }
