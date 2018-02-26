@@ -46,12 +46,13 @@ type Node struct {
 
 // Status is used for reporting this nodes configuration to other nodes
 type Status struct {
-	Address     string      `json:"address"`
-	Version     string      `json:"version"`
-	Length      uint64      `json:"length"`
-	Connections []string    `json:"connections"`
-	Hashes      []hash.Hash `json:"hashes"`
-	HashDiff    HashDiff
+	Address        string      `json:"address"`
+	Version        string      `json:"version"`
+	Length         uint64      `json:"length"`
+	Connections    []string    `json:"connections"`
+	Recomendations []string    `json:"recomendations"`
+	Hashes         []hash.Hash `json:"-"`
+	HashDiff       HashDiff    `json:"-"`
 }
 
 // HashDiff stores the diff between two tangles
@@ -84,12 +85,17 @@ func (n *Node) Status() Status {
 	for k := range n.remoteInterfaces {
 		cons = append(cons, k)
 	}
+	recs := []string{}
+	for _, s := range n.Tangle.RecommendTips() {
+		recs = append(recs, s.Hash().String())
+	}
 	return Status{
-		Address:     n.ListenInterface,
-		Length:      uint64(n.Tangle.Size()),
-		Connections: cons,
-		Version:     n.Version,
-		Hashes:      n.Tangle.Hashes(),
+		Address:        n.ListenInterface,
+		Length:         uint64(n.Tangle.Size()),
+		Connections:    cons,
+		Version:        n.Version,
+		Hashes:         n.Tangle.Hashes(),
+		Recomendations: recs,
 	}
 }
 

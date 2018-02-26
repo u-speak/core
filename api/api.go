@@ -102,7 +102,7 @@ func (a *API) Run() error {
 	apiV1.GET("/tangle", a.getSearch)
 	apiV1.GET("/tangle/random", a.getRandom)
 	apiV1.GET("/tangle/:hash", a.getSite)
-	apiV1.POST("/tangle/:type", a.addSite)
+	apiV1.POST("/tangle/:hash", a.addSite)
 	log.Infof("Starting API Server on interface %s", a.ListenInterface)
 	return e.StartTLS(a.ListenInterface, a.certfile, a.keyfile)
 }
@@ -131,16 +131,19 @@ func (a *API) getSite(c echo.Context) error {
 
 func (a *API) addSite(c echo.Context) error {
 	s := new(jsonSite)
-	switch c.Param("type") {
+	switch c.Param("hash") {
 	case "post":
 		s.Data = &post.Post{}
 	case "image":
 		s.Data = &img.Image{}
 	default:
-		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid type parameter", Code: http.StatusInternalServerError})
+		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid type parameter: " + c.Param("hash"), Code: http.StatusInternalServerError})
 	}
 	if err := c.Bind(s); err != nil {
-		return err
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
+	}
+	if err := s.Data.ReInit(); err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
 	}
 	sh, err := decodeHash(s.Hash)
 	if err != nil {
