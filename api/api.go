@@ -163,6 +163,7 @@ func (a *API) addSite(c echo.Context) error {
 	}
 	dh, err := o.Data.Hash()
 	if err != nil || ch != dh {
+		log.Error(err)
 		return c.JSON(http.StatusBadRequest, Error{Message: "Content did not match supplied hash", Code: http.StatusBadRequest})
 	}
 	o.Site = &site.Site{Nonce: s.Nonce, Content: ch, Type: s.Type, Validates: []*site.Site{}}

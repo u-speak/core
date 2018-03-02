@@ -32,11 +32,11 @@ type serializable interface {
 
 // Hash returns the hashed post for storage
 func (p *Post) Hash() (hash.Hash, error) {
-	sigstr, err := asciiEncode(p.Signature, openpgp.SignatureType)
-	if err != nil {
-		return hash.Hash{}, err
-	}
-	h := "C" + p.Content + "D" + strconv.FormatInt(p.Timestamp, 10) + "P" + p.Pubkey.KeyIdString() + "S" + sigstr
+	buff := bytes.NewBuffer(nil)
+	p.Signature.Serialize(buff)
+	sigdata := buff.Bytes()[3:]
+	sighash := hash.New(sigdata)
+	h := "C" + p.Content + "D" + strconv.FormatInt(p.Timestamp, 10) + "P" + p.Pubkey.KeyIdString() + "S" + sighash.String()
 	return hash.New([]byte(h)), nil
 }
 
