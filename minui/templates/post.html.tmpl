@@ -1,0 +1,41 @@
+{{ template "templates/header.html.tmpl" . }}
+
+<a href="/">Home</a>
+{{ if not (.Data | Valid) }}
+ERROR: {{ .Data.Verify }}
+{{ .Data.JSON }}
+<pre>
+<hr/>
+<code>
+{{ .Data.SigStr }}
+</code>
+<hr/>
+<code>
+{{ .Data.PubkeyStr }}
+</code>
+<hr/>
+<code>
+{{ .Data.Content }}
+</code>
+</pre>
+
+{{ end }}
+<div class="title" style="background: rgba(0, 0, 0, 0)  url({{ .Data | Image }}) no-repeat scroll center center / cover;">
+<h1>{{ .Data | Title }}</h1>
+</div>
+<p>
+  {{ .Data | Body | Markdown }}
+</p>
+<hr/>
+<div>
+  {{ if .Data | Valid }}
+  This post has been cryptographically signed by:
+  <ul>
+    {{ range $key, $value := .Data.Pubkey.Identities }}
+    <li>{{ $value.Name }}</li>
+    {{ end }}
+  </ul>
+  Key Fingerprint: <code>{{ .Data | Fingerprint }}</code>
+  {{ end }}
+</div>
+{{ template "templates/footer.html.tmpl" . }}

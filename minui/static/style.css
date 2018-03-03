@@ -1,0 +1,27 @@
+footer ul {
+  display: inline;
+}
+.title {
+  height: 20rem;
+  border-radius: 3rem;
+}
+.title h1{
+  display: inline-block;
+  color: white;
+  text-shadow: 1px 1px 2px black;
+  padding-left: 1rem;
+}
+footer span {
+  padding-left: 1rem;
+}
+footer li {
+  display: inline;
+  list-style-type: none;
+  padding-right: 1rem;
+}
+
+.post-list {
+}
+.post-list li {
+  list-style-type: none;
+}

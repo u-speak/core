@@ -1,0 +1,12 @@
+pkg: minui
+
+fmt: true
+
+unexporTed: true
+
+dest: "."
+
+custom:
+  - files:
+    - "./static/*"
+    - "./templates/*"

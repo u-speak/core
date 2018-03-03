@@ -1,0 +1,14 @@
+{{ template "templates/header.html.tmpl" . }}
+<h1>MinUI</h1>
+<h5>Brought to you by: <i>{{ .Message}}</i></h5>
+<hr/>
+<h6>Recent Posts:</h6>
+<ul class="post-list">
+  {{ range $key, $value := .Data }}
+  {{ if eq ($value.Site.Type) "post" }}
+  <li><a href="/posts/{{ $value.Site.Hash }}">{{ $value.Data | Post | Title }}</a></li>
+  {{ end }}
+  {{ end }}
+</ul>
+{{ template "templates/footer.html.tmpl" . }}
+    
