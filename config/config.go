@@ -34,6 +34,11 @@ type Configuration struct {
 			Interface string `default:"127.0.0.1" env:"WEB_INTERFACE"`
 			Directory string `default:"portal/dist" env:"STATIC_DIR"`
 		}
+		MinUI struct {
+			Enabled   bool   `default:"true"`
+			Port      int    `default:"8080" env:"MINUI_PORT"`
+			Interface string `default:"0.0.0.0" env:"MINUI_INTERFACE"`
+		}
 		API struct {
 			Port           int    `default:"3000" env:"API_PORT"`
 			Interface      string `default:"127.0.0.1"`

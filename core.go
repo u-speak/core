@@ -4,6 +4,7 @@ import (
 	"github.com/u-speak/core/api"
 	"github.com/u-speak/core/config"
 	"github.com/u-speak/core/diag"
+	"github.com/u-speak/core/minui"
 	"github.com/u-speak/core/node"
 	"github.com/u-speak/core/webserver"
 
@@ -32,4 +33,10 @@ func RunDiag(n *node.Node) {
 // RunWeb starts a static webserver for the portal
 func RunWeb() {
 	webserver.New(Config).Run()
+}
+
+// RunMinUI starts the read-only minimal user interface for use on lower end devices
+func RunMinUI(n *node.Node) {
+	s := minui.New(Config, n)
+	s.Run()
 }

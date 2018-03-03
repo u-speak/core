@@ -32,7 +32,7 @@ func JSONize(o *tangle.Object) jsonSite {
 
 func decodeImageHash(s string) (hash.Hash, string) {
 	a := strings.Split(s, ".")
-	h, _ := decodeHash(a[0])
+	h, _ := DecodeHash(a[0])
 	if len(a) == 1 {
 		return h, ""
 	}
@@ -45,7 +45,8 @@ func decodeImageHash(s string) (hash.Hash, string) {
 	return h, ""
 }
 
-func decodeHash(s string) (hash.Hash, error) {
+// DecodeHash is a utility function, allowing the decoding of various formats
+func DecodeHash(s string) (hash.Hash, error) {
 	h := [32]byte{}
 	var hs []byte
 	h, err := util.DecodeBubbleBabble(s)

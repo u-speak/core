@@ -31,6 +31,7 @@ func Run(c config.Configuration, n *node.Node) error {
 
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 	e.GET("/", s.getIndex)
 	e.GET("/static/:name", s.getStatic)

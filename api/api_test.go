@@ -17,7 +17,7 @@ func TestDecodeHash(t *testing.T) {
 		base64.RawStdEncoding.EncodeToString(validHash[:]),
 	}
 	for _, s := range strings {
-		h, err := decodeHash(s)
+		h, err := DecodeHash(s)
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -25,7 +25,7 @@ func TestDecodeHash(t *testing.T) {
 			t.Errorf("Error decoding hash! Expected %v, got %v", h, validHash)
 		}
 	}
-	_, err := decodeHash(invalid)
+	_, err := DecodeHash(invalid)
 	if err == nil {
 		t.Error("Expected error but got none")
 	}

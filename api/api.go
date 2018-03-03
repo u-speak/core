@@ -78,6 +78,7 @@ func New(c config.Configuration, n *node.Node) *API {
 func (a *API) Run() error {
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true
 	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		Skipper:       middleware.DefaultSkipper,
@@ -112,7 +113,7 @@ func (a *API) getStatus(c echo.Context) error {
 }
 
 func (a *API) getSite(c echo.Context) error {
-	h, err := decodeHash(c.Param("hash"))
+	h, err := DecodeHash(c.Param("hash"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid base64 data", Code: http.StatusBadRequest})
 	}
@@ -145,11 +146,11 @@ func (a *API) addSite(c echo.Context) error {
 	if err := s.Data.ReInit(); err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: err.Error(), Code: http.StatusBadRequest})
 	}
-	sh, err := decodeHash(s.Hash)
+	sh, err := DecodeHash(s.Hash)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode provided hash", Code: http.StatusBadRequest})
 	}
-	switch c.Param("type") {
+	switch c.Param("hash") {
 	case "post":
 		err := verifyGPG(s.Data)
 		if err != nil {
@@ -157,7 +158,7 @@ func (a *API) addSite(c echo.Context) error {
 		}
 	}
 	o := &tangle.Object{Data: s.Data}
-	ch, err := decodeHash(s.Content)
+	ch, err := DecodeHash(s.Content)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Could not decode content hash", Code: http.StatusBadRequest})
 	}
@@ -168,7 +169,7 @@ func (a *API) addSite(c echo.Context) error {
 	}
 	o.Site = &site.Site{Nonce: s.Nonce, Content: ch, Type: s.Type, Validates: []*site.Site{}}
 	for _, b64 := range s.Validates {
-		h, err := decodeHash(b64)
+		h, err := DecodeHash(b64)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash in validations: " + b64, Code: http.StatusBadRequest})
 		}
@@ -199,7 +200,7 @@ func (a *API) uploadImage(c echo.Context) error {
 
 	vls := strings.Split(c.FormValue("validates"), ",")
 	for _, b64 := range vls {
-		h, err := decodeHash(b64)
+		h, err := DecodeHash(b64)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, Error{Message: "Invalid hash in validations: " + b64, Code: http.StatusBadRequest})
 		}
@@ -209,7 +210,7 @@ func (a *API) uploadImage(c echo.Context) error {
 		}
 		o.Site.Validates = append(o.Site.Validates, v.Site)
 	}
-	rh, err := decodeHash(c.FormValue("hash"))
+	rh, err := DecodeHash(c.FormValue("hash"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Error{Message: "Invalid field: Hash", Code: http.StatusBadRequest})
 	}
