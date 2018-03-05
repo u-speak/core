@@ -73,7 +73,7 @@ var (
 			m := front.NewMatter()
 			m.Handle("---", front.YAMLHandler)
 			f, _, _ := m.Parse(strings.NewReader(p.Content))
-			if f["image"] == nil {
+			if f["image"] == nil || f["image"].(string) == "" {
 				return "https://picsum.photos/573/190/?random"
 			}
 			return f["image"].(string)
