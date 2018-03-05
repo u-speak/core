@@ -4,7 +4,6 @@ package post
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"strconv"
 	"strings"
@@ -18,12 +17,11 @@ import (
 
 // Post contains all information needed for a complete post representation
 type Post struct {
-	Content   string            `json:"content"`
-	Pubkey    *openpgp.Entity   `msg:"-" json:"-"`
-	Signature *packet.Signature `msg:"-" json:"-"`
-	PubkeyStr string            `json:"pubkey"`
-	SigStr    string            `json:"signature"`
-	Timestamp int64             `json:"date"`
+	Content   string          `json:"content"`
+	Pubkey    *openpgp.Entity `msg:"-" json:"-"`
+	PubkeyStr string          `json:"pubkey"`
+	Signature string          `json:"signature"`
+	Timestamp int64           `json:"date"`
 }
 
 type serializable interface {
@@ -32,23 +30,15 @@ type serializable interface {
 
 // Hash returns the hashed post for storage
 func (p *Post) Hash() (hash.Hash, error) {
-	buff := bytes.NewBuffer(nil)
-	p.Signature.Serialize(buff)
-	sigdata := buff.Bytes()[3:]
-	sighash := hash.New(sigdata)
-	h := "C" + p.Content + "D" + strconv.FormatInt(p.Timestamp, 10) + "P" + p.Pubkey.PrimaryKey.KeyIdString() + "S" + sighash.String()
+	h := "C" + p.Content + "D" + strconv.FormatInt(p.Timestamp, 10) + "P" + p.Pubkey.PrimaryKey.KeyIdString() + "S" + p.Signature
 	return hash.New([]byte(h)), nil
 }
 
 // Verify returns no error when the signature is valid
-func (p *Post) Verify() error {
-	hash := p.Signature.Hash.New()
-	tr := strings.Trim(p.Content, "\t\n\v\f\r \u0085\u00A0")
-	_, err := io.Copy(hash, strings.NewReader(tr))
-	if err != nil {
-		return err
-	}
-	return p.Pubkey.PrimaryKey.VerifySignature(hash, p.Signature)
+func (p *Post) Verify() (*openpgp.Entity, error) {
+	var kr openpgp.EntityList
+	kr = append(kr, p.Pubkey)
+	return openpgp.CheckArmoredDetachedSignature(kr, strings.NewReader(p.Content), strings.NewReader(p.Signature))
 }
 
 // Serialize implements tangle/datastore.serializable
@@ -66,11 +56,6 @@ func (p *Post) storePGPStr() error {
 		return err
 	}
 	p.PubkeyStr = pk
-	ss, err := asciiEncode(p.Signature, openpgp.SignatureType)
-	if err != nil {
-		return err
-	}
-	p.SigStr = ss
 	return nil
 }
 
@@ -96,15 +81,6 @@ func (p *Post) ReInit() error {
 	}
 	p.Pubkey = pub
 
-	sigpkt, err := asciiDecode(p.SigStr)
-	if err != nil {
-		return err
-	}
-	sig, ok := sigpkt.(*packet.Signature)
-	if !ok {
-		return errors.New("Wrong Block type for signature")
-	}
-	p.Signature = sig
 	return nil
 }
 

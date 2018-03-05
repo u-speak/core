@@ -34,8 +34,8 @@ func (z *Post) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-		case "SigStr":
-			z.SigStr, err = dc.ReadString()
+		case "Signature":
+			z.Signature, err = dc.ReadString()
 			if err != nil {
 				return
 			}
@@ -75,12 +75,12 @@ func (z *Post) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "SigStr"
-	err = en.Append(0xa6, 0x53, 0x69, 0x67, 0x53, 0x74, 0x72)
+	// write "Signature"
+	err = en.Append(0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
 	if err != nil {
 		return
 	}
-	err = en.WriteString(z.SigStr)
+	err = en.WriteString(z.Signature)
 	if err != nil {
 		return
 	}
@@ -106,9 +106,9 @@ func (z *Post) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "PubkeyStr"
 	o = append(o, 0xa9, 0x50, 0x75, 0x62, 0x6b, 0x65, 0x79, 0x53, 0x74, 0x72)
 	o = msgp.AppendString(o, z.PubkeyStr)
-	// string "SigStr"
-	o = append(o, 0xa6, 0x53, 0x69, 0x67, 0x53, 0x74, 0x72)
-	o = msgp.AppendString(o, z.SigStr)
+	// string "Signature"
+	o = append(o, 0xa9, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65)
+	o = msgp.AppendString(o, z.Signature)
 	// string "Timestamp"
 	o = append(o, 0xa9, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70)
 	o = msgp.AppendInt64(o, z.Timestamp)
@@ -141,8 +141,8 @@ func (z *Post) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
-		case "SigStr":
-			z.SigStr, bts, err = msgp.ReadStringBytes(bts)
+		case "Signature":
+			z.Signature, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
 				return
 			}
@@ -164,6 +164,6 @@ func (z *Post) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Post) Msgsize() (s int) {
-	s = 1 + 8 + msgp.StringPrefixSize + len(z.Content) + 10 + msgp.StringPrefixSize + len(z.PubkeyStr) + 7 + msgp.StringPrefixSize + len(z.SigStr) + 10 + msgp.Int64Size
+	s = 1 + 8 + msgp.StringPrefixSize + len(z.Content) + 10 + msgp.StringPrefixSize + len(z.PubkeyStr) + 10 + msgp.StringPrefixSize + len(z.Signature) + 10 + msgp.Int64Size
 	return
 }

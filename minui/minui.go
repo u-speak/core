@@ -86,7 +86,8 @@ var (
 			return url.QueryEscape(s)
 		},
 		"Valid": func(p *post.Post) bool {
-			return p.Verify() == nil
+			_, err := p.Verify()
+			return err == nil
 		},
 		"Fingerprint": func(p *post.Post) string {
 			return hex.EncodeToString(p.Pubkey.PrimaryKey.Fingerprint[:])

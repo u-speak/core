@@ -21,30 +21,31 @@ func post(t *testing.T) *Post {
 	e, _ := openpgp.NewEntity("Test", "test", "test@example.com", c)
 	_ = e.SerializePrivate(bytes.NewBuffer(nil), nil)
 	buff := bytes.NewBuffer(nil)
-	openpgp.DetachSignText(buff, e, strings.NewReader(content), c)
-	sigp, err := packet.Read(buff)
-	assert.NoError(t, err)
-	sig := sigp.(*packet.Signature)
-	p := &Post{Content: content, Pubkey: e, Signature: sig, Timestamp: time.Now().Unix()}
+	_ = openpgp.ArmoredDetachSignText(buff, e, strings.NewReader(content), c)
+	p := &Post{Content: content, Pubkey: e, Signature: string(buff.Bytes()), Timestamp: time.Now().Unix()}
 	return p
 }
 
 func TestVerify(t *testing.T) {
 	p := post(t)
-	assert.NoError(t, p.Verify())
+	_, err := p.Verify()
+	assert.NoError(t, err)
 	p.Content = "modified"
-	assert.Error(t, p.Verify())
+	_, err = p.Verify()
+	assert.Error(t, err)
 }
 
 func TestSerializeable(t *testing.T) {
 	p := post(t)
-	assert.NoError(t, p.Verify())
+	_, err := p.Verify()
+	assert.NoError(t, err)
 	buff, err := p.Serialize()
 	assert.NoError(t, err)
 	p2 := &Post{}
 	err = p2.Deserialize(buff)
 	assert.NoError(t, err)
-	assert.NoError(t, p2.Verify())
+	_, err = p2.Verify()
+	assert.NoError(t, err)
 	assert.EqualValues(t, p.Timestamp, p2.Timestamp)
 }
 

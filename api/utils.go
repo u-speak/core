@@ -81,5 +81,6 @@ func verifyGPG(s datastore.Serializable) error {
 	if err != nil {
 		return err
 	}
-	return s.(*post.Post).Verify()
+	_, err = s.(*post.Post).Verify()
+	return err
 }
