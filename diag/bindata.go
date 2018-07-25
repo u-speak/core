@@ -224,11 +224,11 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"static/bulma.css": staticBulmaCss,
+	"static/bulma.css":          staticBulmaCss,
 	"static/cytoscape-dagre.js": staticCytoscapeDagreJs,
-	"static/cytoscape.min.js": staticCytoscapeMinJs,
-	"static/dagre.min.js": staticDagreMinJs,
-	"static/index.html": staticIndexHtml,
+	"static/cytoscape.min.js":   staticCytoscapeMinJs,
+	"static/dagre.min.js":       staticDagreMinJs,
+	"static/index.html":         staticIndexHtml,
 }
 
 // AssetDir returns the file names below a certain
@@ -270,13 +270,14 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"static": &bintree{nil, map[string]*bintree{
-		"bulma.css": &bintree{staticBulmaCss, map[string]*bintree{}},
-		"cytoscape-dagre.js": &bintree{staticCytoscapeDagreJs, map[string]*bintree{}},
-		"cytoscape.min.js": &bintree{staticCytoscapeMinJs, map[string]*bintree{}},
-		"dagre.min.js": &bintree{staticDagreMinJs, map[string]*bintree{}},
-		"index.html": &bintree{staticIndexHtml, map[string]*bintree{}},
+	"static": {nil, map[string]*bintree{
+		"bulma.css":          {staticBulmaCss, map[string]*bintree{}},
+		"cytoscape-dagre.js": {staticCytoscapeDagreJs, map[string]*bintree{}},
+		"cytoscape.min.js":   {staticCytoscapeMinJs, map[string]*bintree{}},
+		"dagre.min.js":       {staticDagreMinJs, map[string]*bintree{}},
+		"index.html":         {staticIndexHtml, map[string]*bintree{}},
 	}},
 }}
 
@@ -326,4 +327,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

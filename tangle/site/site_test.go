@@ -10,8 +10,8 @@ import (
 
 var dummyContent = blake2b.Sum256([]byte{1, 3, 3, 7})
 
-var dummySite = Site{Content: dummyContent, Nonce: 0, Validates: []*Site{&Site{Content: dummyContent, Nonce: 0}}}
-var complexSite = Site{Content: dummyContent, Nonce: 0, Validates: []*Site{&dummySite, &Site{Content: dummyContent, Nonce: 0, Validates: []*Site{&dummySite}}}}
+var dummySite = Site{Content: dummyContent, Nonce: 0, Validates: []*Site{{Content: dummyContent, Nonce: 0}}}
+var complexSite = Site{Content: dummyContent, Nonce: 0, Validates: []*Site{&dummySite, {Content: dummyContent, Nonce: 0, Validates: []*Site{&dummySite}}}}
 
 func TestHash(t *testing.T) {
 	// Testing single site
