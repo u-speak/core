@@ -13,7 +13,7 @@ import (
 
 	"github.com/gernest/front"
 	"github.com/labstack/echo"
-	"gopkg.in/russross/blackfriday.v2"
+	"github.com/russross/blackfriday"
 
 	"github.com/u-speak/core/api"
 	"github.com/u-speak/core/config"
@@ -23,7 +23,6 @@ import (
 	"github.com/u-speak/core/tangle/datastore"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/u-speak/logrusmiddleware"
 )
 
 // Server holds the information about the current node
@@ -128,7 +127,6 @@ func (s *Server) Run() {
 	e.HidePort = true
 	e.Renderer = r
 
-	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

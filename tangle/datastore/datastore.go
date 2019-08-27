@@ -3,7 +3,7 @@ package datastore
 import (
 	"errors"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 	"github.com/u-speak/core/tangle/hash"
 )
 

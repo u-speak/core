@@ -11,8 +11,6 @@ import (
 	"github.com/u-speak/core/tangle/site"
 
 	"github.com/labstack/echo"
-	log "github.com/sirupsen/logrus"
-	"github.com/u-speak/logrusmiddleware"
 )
 
 // Server stores the state for the diagnostics server
@@ -32,7 +30,7 @@ func Run(c config.Configuration, n *node.Node) error {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
-	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
+	//e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 	e.GET("/", s.getIndex)
 	e.GET("/static/:name", s.getStatic)
 	e.GET("/tangle/graph", s.getGraph)

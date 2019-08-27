@@ -22,7 +22,6 @@ import (
 	"github.com/u-speak/core/tangle/site"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/u-speak/logrusmiddleware"
 )
 
 const (
@@ -79,7 +78,7 @@ func (a *API) Run() error {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
-	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
+	//	e.Logger = logrusmiddleware.Logger{log.StandardLogger()}
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		Skipper:       middleware.DefaultSkipper,
 		AllowOrigins:  []string{"*"},

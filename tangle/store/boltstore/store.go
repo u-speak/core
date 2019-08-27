@@ -5,7 +5,7 @@ import (
 	"github.com/u-speak/core/tangle/site"
 	"github.com/u-speak/core/tangle/store"
 
-	"github.com/coreos/bbolt"
+	bolt "github.com/coreos/bbolt"
 	log "github.com/sirupsen/logrus"
 )
 
